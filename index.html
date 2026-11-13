@@ -634,7 +634,7 @@ if (typeof module !== "undefined") module.exports = PB;
   var setup = null;
   VIEWS.setup = {
     html: function () {
-      if (!setup) setup = { ratio: 1, unit: 2000, by: load(RUNNER, ""), picked: [] };
+      if (!setup) setup = { ratio: 2, unit: 2000, by: load(RUNNER, ""), picked: [] };
       var known = names.slice().sort(function (a, b) { return a.n.localeCompare(b.n); });
       return '<h1>New game</h1>' +
         '<label class="lab">Who is running the table</label><input class="field" id="by" maxlength="30" placeholder="Your name" value="' + esc(setup.by) + '">' +
