@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0C0D0F">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<title>Poker Table</title>
+<style>
+:root{
+  --ink:#0C0D0F;--surface:#131518;--surface2:#1B1E22;--line:#272A2E;--paper:#D6DAD7;--muted:#7A8086;
+  --gold:#7FC7A6;--red:#D77870;--green:#5FAE84;--onGold:#0A100D;--redSoft:#E29A8C;--accentEdge:#4E7A62;
+  --accentWash:#18261F;--warn:#E5C784;--edge:#5D636B;--depth:#5C6E64;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--ink);color:var(--paper);font-family:var(--sans);font-size:16px;line-height:1.4}
+body{min-height:100vh;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+button,input,textarea,select{font:inherit;color:inherit}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:5;background:linear-gradient(var(--ink) 80%,transparent);padding:calc(10px + env(safe-area-inset-top)) 0 8px}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand{font-family:var(--mono);font-weight:700;letter-spacing:.14em;font-size:13px;color:var(--paper);display:flex;align-items:center;gap:8px}
+.brand i{width:12px;height:12px;border-radius:50%;border:2.5px solid var(--gold);display:inline-block}
+.who{font-size:12.5px;color:var(--muted);text-align:right}
+h1{font-family:var(--mono);font-size:22px;letter-spacing:-.02em;margin:18px 0 6px}
+h2{font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:24px 0 10px}
+p{margin:6px 0 12px}
+.muted{color:var(--muted)} .small{font-size:13px} .warnTxt{color:var(--warn)} .bad{color:var(--redSoft)}
+.fig{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.up{color:var(--green)} .down{color:var(--red)}
+.card{background:linear-gradient(#16181C,#101215);border:1px solid var(--line);border-top-color:#2F3338;border-radius:14px;padding:14px;margin:10px 0}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:12px 16px;border-radius:12px;border:1px solid var(--accentEdge);background:transparent;color:var(--gold);font-weight:600;font-size:16px;cursor:pointer;width:100%;text-decoration:none;text-align:center}
+.btn.solid{background:var(--gold);color:var(--onGold);border-color:var(--gold)}
+.btn.ghost{border-color:var(--edge);color:var(--paper)}
+.btn.danger{border-color:rgba(215,120,112,.45);color:var(--redSoft)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn:active:not(:disabled){transform:scale(.98)}
+.row{display:flex;gap:10px;align-items:center}
+.row>*{flex:1}
+.stack>*+*{margin-top:10px}
+.rack{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 4px}
+.rack div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
+.rack b{display:block;font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums}
+.rack span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.seat{background:linear-gradient(#16181C,#101215);border:1px solid var(--line);border-top-color:#2F3338;border-radius:14px;padding:12px;margin:10px 0}
+.seat.closed{opacity:.78}
+.seatTop{display:flex;align-items:center;gap:10px}
+.dot{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;color:#0C0D0F;border:3px dashed rgba(255,255,255,.45)}
+.seatName{font-weight:650;font-size:17px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seatIn{font-family:var(--mono);font-size:15px;text-align:right;font-variant-numeric:tabular-nums}
+.seatSub{font-size:13px;color:var(--muted);margin:4px 0 10px 36px}
+.depth{display:flex;gap:3px;margin:0 0 10px 36px}
+.depth i{height:6px;width:18px;border-radius:2px;background:var(--depth)}
+.seatBtns{display:grid;grid-template-columns:1.3fr 1fr 1fr 48px;gap:8px}
+.seatBtns .btn{min-height:48px;padding:8px 6px;font-size:15px}
+.more{font-size:20px;letter-spacing:.05em}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(12,13,15,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
+.dock .row .btn{min-height:52px}
+.undoBar{position:relative;overflow:hidden}
+.undoBar .drain{position:absolute;left:0;bottom:0;height:2px;background:var(--gold);width:100%;transform-origin:left;animation:drain 8s linear forwards}
+@keyframes drain{to{transform:scaleX(0)}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--edge);border-radius:999px;padding:10px 14px;min-height:44px;background:transparent;cursor:pointer;font-size:15px}
+.chip.on{background:var(--accentWash);border-color:var(--gold);color:var(--gold)}
+.field{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:13px;font-size:16px;outline:none}
+.field:focus{border-color:var(--accentEdge)}
+.field.figin{font-family:var(--mono);font-weight:600;text-align:right}
+textarea.field{min-height:150px;font-family:var(--mono);font-size:15px}
+label.lab{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+.seg{display:flex;border:1px solid var(--edge);border-radius:12px;overflow:hidden}
+.seg button{flex:1;min-height:46px;background:transparent;border:0;cursor:pointer;font-size:15px}
+.seg button.on{background:var(--accentWash);color:var(--gold)}
+.seg button+button{border-left:1px solid var(--edge)}
+.line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.line:last-child{border-bottom:0}
+.line .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pay{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--line)}
+.pay:last-child{border-bottom:0}
+.pay .arrow{color:var(--muted)}
+.pay .amt{margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--gold)}
+.countRow{display:grid;grid-template-columns:1fr 130px 76px;gap:8px;align-items:center;padding:6px 0}
+.countRow .btn{min-height:46px;font-size:14px;padding:6px}
+.status{border-radius:12px;padding:12px;margin:12px 0;font-size:15px;border:1px solid var(--line);background:var(--surface)}
+.status.ok{border-color:var(--accentEdge);color:var(--gold)}
+.status.warn{border-color:rgba(229,199,132,.45);color:var(--warn)}
+.status.err{border-color:rgba(215,120,112,.45);color:var(--redSoft)}
+.flag{display:inline-block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--edge);border-radius:6px;padding:3px 7px;margin:2px 4px 2px 0;color:var(--muted)}
+.flag.w{color:var(--warn);border-color:rgba(229,199,132,.45)}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;width:100%;max-width:560px;max-height:88vh;overflow:auto;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+.sheet h3{font-family:var(--mono);margin:0 0 4px;font-size:18px}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--edge);margin:-6px auto 12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));background:var(--surface2);border:1px solid var(--edge);border-radius:12px;padding:10px 14px;z-index:30;font-size:14px;max-width:92vw}
+.linkbox{font-family:var(--mono);font-size:12px;word-break:break-all;background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--muted);max-height:120px;overflow:auto}
+.hide{display:none!important}
+.big{font-size:28px;font-family:var(--mono);font-weight:700}
+ol.how{padding-left:20px;margin:6px 0} ol.how li{margin:6px 0}
+a{color:var(--gold)}
+/* K4: long names never push figures off a phone screen; sheet fits above the iOS keyboard */
+.pay>span:not(.arrow):not(.amt){min-width:0;overflow-wrap:anywhere}.pay .amt{flex:0 0 auto}.countRow{grid-template-columns:minmax(0,1fr) 130px 76px}.countRow .nm{min-width:0;overflow-wrap:anywhere}.who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sheet{max-height:88dvh}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><div class="brand"><i></i>POKER TABLE</div><div class="who" id="who"></div></div></header>
+<main class="wrap" id="app"></main>
+<div class="dock hide" id="dock"><div class="wrap" id="dockIn"></div></div>
+<div id="layer"></div>
+<noscript><div class="wrap"><p>This page needs JavaScript turned on.</p></div></noscript>
+<script>
+/*CORE-START*/
+// Poker Bank web table — money + link core. Ported line-for-line from
+// PokerBankCore (GameMath.value, Adjustments.absorbDrift/driftFix/splitGap*,
+// Settlement.settle/greedyPairs, Transfer.displayOrder) and ResultLink.swift.
+// The node cross-check (tests/crosscheck.js) runs THIS text.
+var PB = (function () {
+  "use strict";
+  var HOST = "https://krishnakeerthanv.github.io/poker-table/";
+
+  function sum(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s; }
+  function cmpStr(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+
+  // GameMath.value — round(chips / ratio), half-up, integers only.
+  function value(chips, ratio) {
+    var r = Math.max(1, ratio | 0), c = Math.max(0, chips | 0);
+    var q = Math.floor(c / r), rem = c - q * r;
+    return rem >= r - rem ? q + 1 : q;
+  }
+
+  // netThenName: net desc, then name, then id.
+  function canonical(a, b) {
+    if (a.net !== b.net) return a.net > b.net ? -1 : 1;
+    var n = cmpStr(a.name, b.name); if (n) return n;
+    return cmpStr(a.id, b.id);
+  }
+  function firstMaxBy(indices, key) {
+    var best = indices[0];
+    for (var k = 1; k < indices.length; k++) if (key(best) < key(indices[k])) best = indices[k];
+    return best;
+  }
+
+  function driftFix(nets) {
+    var drift = sum(nets.map(function (p) { return p.net; }));
+    if (drift === 0 || !nets.length) return nets;
+    var out = nets.map(function (p) { return { id: p.id, name: p.name, net: p.net }; });
+    var idx = firstMaxBy(out.map(function (_, i) { return i; }), function (i) { return Math.abs(out[i].net); });
+    out[idx].net -= drift;
+    return out;
+  }
+
+  function absorbDrift(nets, vals, paidEarly) {
+    if (nets.length !== vals.length) return { nets: driftFix(nets), vals: vals };
+    var drift = sum(nets.map(function (p) { return p.net; }));
+    if (drift === 0 || !nets.length) return { nets: nets, vals: vals };
+    var all = nets.map(function (_, i) { return i; });
+    var eligible = all.filter(function (i) { return vals[i] > 0 && vals[i] - drift >= 0; });
+    var early = paidEarly && paidEarly.length === nets.length ? paidEarly : null;
+    var preferred = early ? eligible.filter(function (i) { return !early[i]; }) : eligible;
+    var pool = preferred.length ? preferred : (eligible.length ? eligible : all);
+    var idx = firstMaxBy(pool, function (i) { return Math.abs(nets[i].net); });
+    var outNets = nets.map(function (p) { return { id: p.id, name: p.name, net: p.net }; });
+    var outVals = vals.slice();
+    outNets[idx].net -= drift;
+    outVals[idx] = Math.max(0, outVals[idx] - drift);
+    return { nets: outNets, vals: outVals };
+  }
+
+  function greedyPairs(players) {
+    var cr = players.filter(function (p) { return p.net > 0; })
+      .map(function (p) { return { id: p.id, name: p.name, net: p.net }; }).sort(canonical);
+    var db = players.filter(function (p) { return p.net < 0; })
+      .map(function (p) { return { id: p.id, name: p.name, net: -p.net }; }).sort(canonical);
+    var out = [], i = 0, j = 0;
+    while (i < cr.length && j < db.length) {
+      var amt = Math.min(cr[i].net, db[j].net);
+      out.push({ fromId: db[j].id, from: db[j].name, toId: cr[i].id, to: cr[i].name, amt: amt });
+      cr[i].net -= amt; db[j].net -= amt;
+      if (cr[i].net === 0) i++;
+      if (db[j].net === 0) j++;
+    }
+    return out;
+  }
+
+  // Settlement.settle — exact minimum transfers via subset DP, canonical order.
+  function settle(input) {
+    var nets = input.map(function (p) { return { id: p.id, name: p.name, net: p.net }; }).sort(canonical);
+    var total = sum(nets.map(function (p) { return p.net; }));
+    var balanced = total === 0 ? nets : driftFix(nets);
+    var act = balanced.filter(function (p) { return p.net !== 0; });
+    if (act.length <= 1) return [];
+    if (act.length > 15) return greedyPairs(act);
+    var n = act.length, full = (1 << n) - 1;
+    var s = new Array(full + 1).fill(0);
+    for (var mask = 1; mask <= full; mask++) {
+      var low = mask & -mask;
+      s[mask] = s[mask ^ low] + act[31 - Math.clz32(low)].net;
+    }
+    var best = new Array(full + 1).fill(-1), pick = new Array(full + 1).fill(0);
+    best[0] = 0;
+    for (mask = 1; mask <= full; mask++) {
+      low = mask & -mask;
+      var t = mask;
+      while (t > 0) {
+        if ((t & low) !== 0 && s[t] === 0 && best[mask ^ t] >= 0 && best[mask ^ t] + 1 > best[mask]) {
+          best[mask] = best[mask ^ t] + 1; pick[mask] = t;
+        }
+        t = (t - 1) & mask;
+      }
+    }
+    var out = [];
+    mask = full;
+    while (mask > 0) {
+      var group = pick[mask], members = [];
+      for (var k = 0; k < n; k++) if (group & (1 << k)) members.push(act[k]);
+      out = out.concat(greedyPairs(members));
+      mask ^= group;
+    }
+    return out;
+  }
+
+  function displayOrder(a, b) {
+    if (a.amt !== b.amt) return a.amt > b.amt ? -1 : 1;
+    return cmpStr(a.from, b.from) || cmpStr(a.to, b.to) || cmpStr(a.fromId, b.fromId) || cmpStr(a.toId, b.toId);
+  }
+
+  // Adjustments.splitGap / splitGapNonNegative.
+  function splitGap(stacks, shouldBe) {
+    if (!stacks.length) return { adjusted: stacks, record: null };
+    var gap = sum(stacks) - shouldBe;
+    if (gap === 0) return { adjusted: stacks.slice(), record: null };
+    var n = stacks.length, target = -gap;
+    var base = Math.trunc(target / n), rem = target - base * n;
+    var adj = stacks.map(function (x) { return x + base; });
+    var step = rem >= 0 ? 1 : -1;
+    for (var k = 0; k < Math.abs(rem); k++) adj[k] += step;
+    return { adjusted: adj, record: { chips: gap, split: n } };
+  }
+  function splitGapNonNegative(stacks, shouldBe) {
+    var r = splitGap(stacks, shouldBe);
+    if (!r.adjusted.some(function (x) { return x < 0; })) return r;
+    var out = r.adjusted.slice(), deficit = 0;
+    for (var i = 0; i < out.length; i++) if (out[i] < 0) { deficit -= out[i]; out[i] = 0; }
+    while (deficit > 0) {
+      var cand = out.map(function (_, i) { return i; }).filter(function (i) { return out[i] > 0; })
+        .sort(function (a, b) { return out[b] - out[a] || a - b; });
+      if (!cand.length) break;
+      var share = Math.max(1, Math.floor(deficit / cand.length));
+      for (var c = 0; c < cand.length; c++) {
+        if (deficit <= 0) break;
+        var take = Math.min(Math.min(share, out[cand[c]]), deficit);
+        out[cand[c]] -= take; deficit -= take;
+      }
+    }
+    return { adjusted: out, record: r.record };
+  }
+
+  // BankStore.settleFinalCount for a count of every still-open stack:
+  // the gap is spread only over open stacks holding chips (all open ones if
+  // none hold any); stacks cashed out earlier never move.
+  function finalCount(openChips, shouldBe) {
+    var idx = openChips.map(function (_, i) { return i; });
+    var holders = idx.filter(function (i) { return openChips[i] > 0; });
+    var over = holders.length ? holders : idx;
+    var outside = sum(openChips) - sum(over.map(function (i) { return openChips[i]; }));
+    var r = splitGapNonNegative(over.map(function (i) { return openChips[i]; }), shouldBe - outside);
+    var adjusted = openChips.slice();
+    over.forEach(function (i, k) { adjusted[i] = r.adjusted[k]; });
+    var ok = adjusted.every(function (x) { return x >= 0; }) && sum(adjusted) === shouldBe;
+    return { ok: ok, adjusted: adjusted, record: r.record };
+  }
+
+  // A finished night from seats {n, in, c, e} — exactly ImportedNight.build.
+  function computeNight(seats, ratio) {
+    var vals = seats.map(function (s) { return value(s.c, ratio); });
+    var nets = seats.map(function (s, k) { return { id: s.id || s.n, name: s.n, net: vals[k] - s.in }; });
+    var raw = sum(nets.map(function (p) { return p.net; }));
+    var fixed = absorbDrift(nets, vals, seats.map(function (s) { return !!s.e; }));
+    var rows = seats.map(function (s, k) {
+      return { n: s.n, idx: k, in: s.in, c: s.c, val: fixed.vals[k], net: fixed.nets[k].net };
+    }).sort(function (a, b) { return canonical({ net: a.net, name: a.n, id: seats[a.idx].id || a.n }, { net: b.net, name: b.n, id: seats[b.idx].id || b.n }); });
+    var transfers = settle(fixed.nets).sort(displayOrder);
+    return { rows: rows, transfers: transfers, rawDrift: raw };
+  }
+
+  // ---------- links ----------
+  var CRC = (function () {
+    var t = new Array(256);
+    for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+    return t;
+  })();
+  function crc32(bytes) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) c = CRC[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function b64url(bytes) {
+    var s = ""; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function fromB64url(s) {
+    if (!/^[A-Za-z0-9_-]*$/.test(s) || s.length % 4 === 1) return null;
+    var t = s.replace(/-/g, "+").replace(/_/g, "/");
+    while (t.length % 4) t += "=";
+    try { var bin = atob(t); } catch (e) { return null; }
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  async function pipe(bytes, stream) {
+    var res = new Response(new Blob([bytes]).stream().pipeThrough(stream));
+    return new Uint8Array(await res.arrayBuffer());
+  }
+  var canDeflate = typeof CompressionStream !== "undefined";
+  async function encodeJSON(obj) {
+    var json = new TextEncoder().encode(JSON.stringify(obj));
+    var crc = crc32(json);
+    var body = json, ver = "0";
+    if (canDeflate) {
+      try { body = await pipe(json, new CompressionStream("deflate-raw")); ver = "1"; } catch (e) { body = json; ver = "0"; }
+    }
+    var all = new Uint8Array(body.length + 4);
+    all.set(body, 0);
+    all[body.length] = crc >>> 24 & 255; all[body.length + 1] = crc >>> 16 & 255;
+    all[body.length + 2] = crc >>> 8 & 255; all[body.length + 3] = crc & 255;
+    return ver + b64url(all);
+  }
+  var MSG = {
+    empty: "This link is empty.",
+    version: "This link was made by a newer version of the table. Ask for a fresh link.",
+    damaged: "This link is damaged — part of it is missing or was changed. Ask for it to be shared again (copy the whole link).",
+    unreadable: "This link opens, but what is inside is not a poker night."
+  };
+  async function decodeJSON(payload) {
+    var s = (payload || "").trim();
+    if (!s) throw new Error(MSG.empty);
+    if (s.length > 24000) throw new Error(MSG.damaged);
+    var ver = s[0];
+    if (ver !== "0" && ver !== "1") throw new Error(MSG.version);
+    var bytes = fromB64url(s.slice(1));
+    if (!bytes || bytes.length <= 4) throw new Error(MSG.damaged);
+    var body = bytes.slice(0, bytes.length - 4), tail = bytes.slice(bytes.length - 4);
+    var want = ((tail[0] << 24) | (tail[1] << 16) | (tail[2] << 8) | tail[3]) >>> 0;
+    var json = body;
+    if (ver === "1") {
+      if (typeof DecompressionStream === "undefined") throw new Error("This browser cannot open compressed links. Try Safari or Chrome.");
+      try { json = await pipe(body, new DecompressionStream("deflate-raw")); } catch (e) { throw new Error(MSG.damaged); }
+    }
+    if (json.length > 262144 || crc32(json) !== want) throw new Error(MSG.damaged);
+    try { return JSON.parse(new TextDecoder().decode(json)); } catch (e) { throw new Error(MSG.unreadable); }
+  }
+
+  // ---------- formatting ----------
+  function grouped(v) {
+    var neg = v < 0, d = String(Math.abs(v));
+    if (d.length > 3) {
+      var last = d.slice(-3), rest = d.slice(0, -3), parts = [];
+      while (rest.length > 2) { parts.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
+      if (rest) parts.unshift(rest);
+      d = parts.join(",") + "," + last;
+    }
+    return (neg ? "-" : "") + d;
+  }
+  function inr(v) { return v < 0 ? "-₹" + grouped(-v) : "₹" + grouped(v); }
+  function signed(v) { return v > 0 ? "+" + inr(v) : v < 0 ? "−₹" + grouped(-v) : "₹0"; }
+  function signedPlain(v) { return v > 0 ? "+" + inr(v) : v < 0 ? "-₹" + grouped(-v) : "₹0"; }
+
+  // ---------- P&L notes: "Bhu +1100, Fred's -10000, Gopi nill" ----------
+  function parsePnl(text) {
+    var out = [], bad = [];
+    // Lines, semicolons, or a comma that starts a new name ("-4,400" stays whole).
+    String(text || "").split(/\n|;|,(?=\s*[^\d\s])/).forEach(function (raw) {
+      var t = raw.trim(); if (!t) return;
+      var m = t.match(/^(.*?\S)(?:\s*[:=]\s*|\s+)(nill?|nil|zero|even|level|[+\-−–]?\s*(?:rs\.?|₹)?\s*\d[\d,]*(?:\.\d+)?\s*k?)\s*$/i);
+      if (!m) { bad.push(t); return; }
+      var name = m[1].trim();
+      var amt = m[2].toLowerCase().replace(/\s+/g, "");
+      var net;
+      if (/^(nill?|nil|zero|even|level)$/.test(amt)) net = 0;
+      else {
+        var neg = /^[\-−–]/.test(amt);
+        var num = amt.replace(/^[+\-−–]/, "").replace(/^(rs\.?|₹)/, "").replace(/,/g, "");
+        var k = /k$/.test(num); num = num.replace(/k$/, "");
+        var v = parseFloat(num); if (!isFinite(v)) { bad.push(t); return; }
+        net = Math.round(v * (k ? 1000 : 1)) * (neg ? -1 : 1);
+      }
+      out.push({ n: name, net: net });
+    });
+    return { rows: out, bad: bad };
+  }
+  // P&L only: assume buy-ins in whole units so every row reads val − in = net
+  // at ratio 1. Winners put in one unit; losers enough units to cover the loss.
+  function assumeSeats(rows, unit) {
+    var u = Math.max(1, unit | 0);
+    return rows.map(function (r) {
+      var inn = r.net >= 0 ? u : Math.max(u, Math.ceil(-r.net / u) * u);
+      return { n: r.n, i: r.i, in: inn, c: inn + r.net, b: Math.max(1, Math.round(inn / u)) };
+    });
+  }
+
+  // Name matching, same rules as RosterMatch in the app.
+  function normalize(s) {
+    var t = String(s).toLowerCase().trim().replace(/['’]s$/, "");
+    return t.replace(/[^\p{L}\p{N}]/gu, "");
+  }
+  function lev(a, b) {
+    a = Array.from(a); b = Array.from(b);
+    if (!a.length) return b.length; if (!b.length) return a.length;
+    var prev = []; for (var j = 0; j <= b.length; j++) prev[j] = j;
+    for (var i = 1; i <= a.length; i++) {
+      var cur = [i];
+      for (j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function suggest(name, roster) {
+    var n = normalize(name); if (!n) return [];
+    var scored = [];
+    roster.forEach(function (c) {
+      var m = normalize(c.n); if (!m) return;
+      var sc;
+      if (m === n) sc = 0;
+      else if (Math.min(m.length, n.length) >= 3 && (m.indexOf(n) === 0 || n.indexOf(m) === 0)) sc = 1;
+      else { var d = lev(m, n), allowed = Math.min(m.length, n.length) >= 3 ? 2 : 1; if (d > allowed) return; sc = 1 + d; }
+      scored.push([c, sc]);
+    });
+    return scored.sort(function (a, b) { return a[1] - b[1] || cmpStr(a[0].n, b[0].n); }).map(function (x) { return x[0]; });
+  }
+
+  return {
+    HOST: HOST, value: value, driftFix: driftFix, absorbDrift: absorbDrift, settle: settle,
+    greedyPairs: greedyPairs, displayOrder: displayOrder, splitGap: splitGap,
+    splitGapNonNegative: splitGapNonNegative, finalCount: finalCount, computeNight: computeNight,
+    crc32: crc32, b64url: b64url, fromB64url: fromB64url, encodeJSON: encodeJSON, decodeJSON: decodeJSON,
+    grouped: grouped, inr: inr, signed: signed, signedPlain: signedPlain, parsePnl: parsePnl,
+    assumeSeats: assumeSeats, normalize: normalize, suggest: suggest, sum: sum
+  };
+})();
+if (typeof module !== "undefined") module.exports = PB;
+/*CORE-END*/
+/* ---------- the page ---------- */
+(function () {
+  "use strict";
+  var KEY = "pbt.game.v1", NAMES = "pbt.names.v1", RUNNER = "pbt.runner.v1", COUNT = "pbt.count.v1";
+  // Poker Bank refuses a night with more than 20 players (ResultLink.maxSeats)
+  // or a stack over 1,00,00,000 chips (Limits.maxChips).
+  var MAXSEATS = 20, MAXCHIPS = 10000000;
+  var PAL = ["#6CB8F0","#C8B48A","#3D6FC4","#8B5CC6","#E2B33C","#E8772E","#27A9B4","#E060A8","#D0ADFF","#6461E0","#B94BC4","#8894AE"];
+  var app = document.getElementById("app"), dock = document.getElementById("dock"),
+      dockIn = document.getElementById("dockIn"), layer = document.getElementById("layer"), whoEl = document.getElementById("who");
+
+  function load(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function drop(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function now() { return Date.now(); }
+  function fmtTime(ms) { var d = new Date(ms), h = d.getHours(), m = d.getMinutes(); return (h % 12 || 12) + ":" + (m < 10 ? "0" : "") + m + (h < 12 ? " AM" : " PM"); }
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  function fmtDay(ms) { var d = new Date(ms); return DAYS[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()]; }
+  function toast(msg) {
+    var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2600);
+  }
+
+  var G = load(KEY, null);          // the game on this phone
+  var names = load(NAMES, []);      // roster names known to this phone [{n,i,col}]
+  var view = { name: G ? (G.phase === "done" ? "result" : "table") : "home" };
+  var undo = null, undoTimer = null;
+
+  function persist() { if (G) save(KEY, G); else drop(KEY); }
+  function remember(list) {
+    list.forEach(function (r) {
+      var hit = names.find(function (x) { return (r.i && x.i === r.i) || x.n.toLowerCase() === r.n.toLowerCase(); });
+      if (hit) { hit.n = r.n; if (r.i) hit.i = r.i; if (r.col != null) hit.col = r.col; }
+      else names.push({ n: r.n, i: r.i || null, col: r.col != null ? r.col : null });
+    });
+    save(NAMES, names);
+  }
+
+  // ---------- money helpers on the live game ----------
+  function totalIn(s) { return PB.sum(s.b); }
+  function issued() { return PB.sum(G.seats.map(function (s) { return totalIn(s) * G.ratio; })); }
+  function counted() { return PB.sum(G.seats.map(function (s) { return s.c == null ? 0 : s.c; })); }
+  function onTable() { return issued() - counted(); }
+  // Seat hand-overs made on the phone before the night came here, by seat
+  // name: [{ f, t, c, a }]. A handed-over stack is in the leaver's count AND
+  // in the newcomer's buy-ins, so the cash figure counts it once; the chip
+  // maths (issued − counted) is gross and needs nothing.
+  function cleanHands(list) {
+    return Array.isArray(list) ? list.filter(function (h) {
+      return h && typeof h.f === "string" && typeof h.t === "string" && Number.isInteger(h.c) && h.c >= 0 && h.c <= 1e7;
+    }).map(function (h) { return { f: h.f, t: h.t, c: h.c, a: Number.isInteger(h.a) ? h.a : null }; }) : [];
+  }
+  function seatNamed(n) { var k = String(n).toLowerCase(); return G.seats.find(function (s) { return s.n.toLowerCase() === k; }) || null; }
+  function handovers() {
+    if (!G || G.mode === "p") return [];
+    return (G.x || []).filter(function (h) { var f = seatNamed(h.f), t = seatNamed(h.t); return f && t && f !== t && f.c != null; });
+  }
+  function handOverOf(s) { var k = s.n.toLowerCase(); return handovers().find(function (h) { return h.f.toLowerCase() === k; }) || null; }
+  function inHandover(s) { var k = s.n.toLowerCase(); return handovers().some(function (h) { return h.f.toLowerCase() === k || h.t.toLowerCase() === k; }); }
+  function handedRupees() { return PB.sum(handovers().map(function (h) { return Math.floor(h.c / G.ratio); })); }
+  function cashIn() { return PB.sum(G.seats.map(totalIn)) - handedRupees(); }
+  function openSeats() { return G.seats.filter(function (s) { return s.c == null; }); }
+  function colorOf(s, k) { var c = s.col != null ? s.col : k; return PAL[((c % PAL.length) + PAL.length) % PAL.length]; }
+
+  function commit(label, fn) {
+    var before = JSON.stringify(G);
+    fn();
+    persist();
+    if (label) {
+      undo = { label: label, snap: before };
+      clearTimeout(undoTimer);
+      undoTimer = setTimeout(function () { undo = null; render(); }, 8000);
+    }
+    render();
+  }
+  function doUndo() {
+    if (!undo) return;
+    G = JSON.parse(undo.snap); undo = null; clearTimeout(undoTimer); persist();
+    if (G.phase !== "done" && view.name === "result") view = { name: "table" };
+    else if (G.phase === "done" && view.name !== "result") view = { name: "result" };
+    render(); toast("Undone.");
+  }
+
+  // A new game on this phone: the old game's undo and count draft must not
+  // reach it (K4).
+  function freshGame() { undo = null; clearTimeout(undoTimer); countDraft = {}; drop(COUNT); }
+  // Another tab on this phone (WhatsApp opens the group link in a new tab)
+  // may have moved the game on: never act on a stale copy (K4).
+  function resync() {
+    var raw; try { raw = localStorage.getItem(KEY); } catch (e) { return; }
+    if (raw === (G ? JSON.stringify(G) : null)) return;
+    var fresh = null; try { fresh = raw ? JSON.parse(raw) : null; } catch (e) { return; }
+    G = fresh; undo = null; clearTimeout(undoTimer); closeSheet();
+    if (["table", "count", "result"].indexOf(view.name) >= 0) view = { name: G ? (G.phase === "done" ? "result" : "table") : "home" };
+    render(); toast("Updated — this game changed in another tab.");
+  }
+  // ---------- sheets ----------
+  function sheet(html, bind) {
+    layer.innerHTML = '<div class="scrim" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>' + html + "</div></div>";
+    var scrim = layer.firstChild;
+    scrim.addEventListener("click", function (e) { if (e.target === scrim) closeSheet(); });
+    if (bind) bind(scrim.firstChild);
+    var f = scrim.querySelector("input,textarea"); if (f) setTimeout(function () { f.focus(); }, 60);
+  }
+  function closeSheet() { layer.innerHTML = ""; }
+  function confirmSheet(title, msg, yes, danger, fn) {
+    sheet("<h3>" + esc(title) + '</h3><p class="muted">' + esc(msg) + '</p><div class="stack"><button class="btn ' + (danger ? "danger" : "solid") + '" id="yes">' + esc(yes) +
+      '</button><button class="btn ghost" id="no">Cancel</button></div>', function (el) {
+      el.querySelector("#yes").onclick = function () { closeSheet(); fn(); };
+      el.querySelector("#no").onclick = closeSheet;
+    });
+  }
+  function parseChips(text) {
+    var t = String(text).trim();
+    if (!/^\d{1,8}$/.test(t)) return null;
+    return parseInt(t, 10);
+  }
+
+  // ---------- views ----------
+  function render() {
+    closeDockIfNeeded();
+    whoEl.textContent = G && G.by ? "Run by " + G.by : "";
+    var v = VIEWS[view.name] || VIEWS.home;
+    app.innerHTML = v.html();
+    if (v.bind) v.bind();
+    renderDock();
+    window.scrollTo && view.scrollTop && window.scrollTo(0, 0);
+    view.scrollTop = false;
+  }
+  function go(name, extra) { view = Object.assign({ name: name, scrollTop: true }, extra || {}); render(); }
+  function closeDockIfNeeded() { dock.classList.add("hide"); dockIn.innerHTML = ""; }
+  function renderDock() {
+    if (!G || view.name !== "table") return;
+    dock.classList.remove("hide");
+    if (undo) {
+      dockIn.innerHTML = '<div class="row undoBar"><div class="small">' + esc(undo.label) + '</div><button class="btn solid" id="undo" style="flex:0 0 120px">Undo</button><div class="drain"></div></div>';
+      dockIn.querySelector("#undo").onclick = doUndo;
+      return;
+    }
+    var open = openSeats().length;
+    var label = !G.seats.length ? "Final count" : open === 0 ? "Finish" : "Final count (" + open + ")";
+    dockIn.innerHTML = '<div class="row"><button class="btn ghost" id="handBtn">Hand over</button><button class="btn solid" id="finBtn"' + (G.seats.length ? "" : " disabled") + ">" + label + "</button></div>";
+    dockIn.querySelector("#handBtn").onclick = handOver;
+    dockIn.querySelector("#finBtn").onclick = function () { if (open === 0) finishAllClosed(); else go("count"); };
+  }
+
+  var VIEWS = {};
+
+  VIEWS.home = {
+    html: function () {
+      var cont = G ? '<div class="card"><div class="small muted">On this phone</div><div style="font-weight:650;margin:4px 0 10px">' +
+        (G.phase === "done" ? "Last game's result" : "Tonight's game · " + G.seats.length + " players · " + PB.inr(cashIn()) + " in") +
+        '</div><button class="btn solid" id="cont">' + (G.phase === "done" ? "Open the result" : "Back to the table") + "</button></div>" : "";
+      return '<h1>Run tonight\'s game</h1><p class="muted">For when Kittu isn\'t at the table. Everything stays on this phone — nothing is uploaded. At the end you send Kittu one link and he adds the night to Poker Bank.</p>' +
+        cont +
+        '<div class="stack" style="margin-top:16px">' +
+        '<button class="btn ' + (G ? "" : "solid") + '" id="new">Start a game</button>' +
+        '<button class="btn ghost" id="paste">I have a link (hand-over or result)</button>' +
+        '<button class="btn ghost" id="pnl">Only the results (from a phone note)</button></div>' +
+        '<h2>How it works</h2><ol class="how muted small"><li>Seat everyone, tap <b>+</b> for each buy-in.</li><li>Cash people out with their chip count, or mark them busted.</li><li>At the end, count every stack. The page checks the chips add up and shows who pays whom.</li><li>Tap <b>Send to Kittu</b> and post the link in the group. Nothing counts until he approves it.</li></ol>' +
+        '<p class="muted small">Leaving early? Tap <b>Hand over</b> on the table and send the link to whoever takes over.</p>';
+    },
+    bind: function () {
+      var c = document.getElementById("cont"); if (c) c.onclick = function () { go(G.phase === "done" ? "result" : "table"); };
+      document.getElementById("new").onclick = function () {
+        if (G && G.phase !== "done") return confirmSheet("Start over?", "The game on this phone (" + G.seats.length + " players) is discarded. Hand it over first if it is still being played.", "Discard and start new", true, function () { G = null; freshGame(); persist(); go("setup"); });
+        G = null; freshGame(); persist(); go("setup");
+      };
+      document.getElementById("paste").onclick = pasteLink;
+      document.getElementById("pnl").onclick = function () { go("pnl"); };
+    }
+  };
+
+  function pasteLink() {
+    sheet('<h3>Open a link</h3><p class="muted small">Paste the whole link from WhatsApp.</p><textarea class="field" id="lk" style="min-height:110px" placeholder="https://…"></textarea><div class="stack" style="margin-top:12px"><button class="btn solid" id="ok">Open</button></div><p class="bad small" id="err"></p>', function (el) {
+      el.querySelector("#ok").onclick = function () {
+        var t = el.querySelector("#lk").value.trim(), m = t.match(/#?([hrg])=([A-Za-z0-9_-]+)/);
+        if (!m) { el.querySelector("#err").textContent = "That is not a Poker Table link."; return; }
+        closeSheet(); route(m[1], m[2]);
+      };
+    });
+  }
+
+  // ----- setup -----
+  var setup = null;
+  VIEWS.setup = {
+    html: function () {
+      if (!setup) setup = { ratio: 1, unit: 2000, by: load(RUNNER, ""), picked: [] };
+      var known = names.slice().sort(function (a, b) { return a.n.localeCompare(b.n); });
+      return '<h1>New game</h1>' +
+        '<label class="lab">Who is running the table</label><input class="field" id="by" maxlength="30" placeholder="Your name" value="' + esc(setup.by) + '">' +
+        '<label class="lab">Buy-in</label><div class="seg" id="unit">' + [1000, 2000, 5000].map(function (u) { return '<button data-u="' + u + '" class="' + (setup.unit === u ? "on" : "") + '">' + PB.inr(u) + "</button>"; }).join("") + "</div>" +
+        '<label class="lab">Chips</label><div class="seg" id="ratio">' + [1, 2].map(function (r) { return '<button data-r="' + r + '" class="' + (setup.ratio === r ? "on" : "") + '">' + (r === 1 ? "₹1 = 1 chip" : "₹1 = 2 chips") + "</button>"; }).join("") + "</div>" +
+        '<p class="small muted">Use what Kittu\'s app uses. A ' + PB.inr(setup.unit) + " buy-in is " + PB.grouped(setup.unit * setup.ratio) + " chips.</p>" +
+        '<label class="lab">Players tonight (' + setup.picked.length + ')</label>' +
+        (known.length ? '<div class="chips" id="known">' + known.map(function (r) { var on = setup.picked.some(function (p) { return p.n === r.n; }); return '<button class="chip' + (on ? " on" : "") + '" data-n="' + esc(r.n) + '">' + esc(r.n) + "</button>"; }).join("") + "</div>" : '<p class="small muted">No names on this phone yet — type them below. Next time they are remembered.</p>') +
+        '<div class="row" style="margin-top:10px"><input class="field" id="newName" maxlength="24" placeholder="Type a new name"><button class="btn" id="addName" style="flex:0 0 90px">Add</button></div>' +
+        (setup.picked.filter(function (p) { return !names.some(function (r) { return r.n === p.n; }); }).length ? '<div class="chips" style="margin-top:8px">' + setup.picked.filter(function (p) { return !names.some(function (r) { return r.n === p.n; }); }).map(function (p) { return '<button class="chip on" data-n="' + esc(p.n) + '">' + esc(p.n) + " ✕</button>"; }).join("") + "</div>" : "") +
+        '<p class="small muted">Everyone starts with one ' + PB.inr(setup.unit) + ' buy-in.</p><div class="stack" style="margin-top:16px"><button class="btn solid" id="go"' + (setup.picked.length ? "" : " disabled") + '>Seat ' + setup.picked.length + ' and start</button><button class="btn ghost" id="back">Back</button></div><p class="bad small" id="err"></p>';
+    },
+    bind: function () {
+      var by = document.getElementById("by"); by.oninput = function () { setup.by = by.value; };
+      document.querySelectorAll("#unit button").forEach(function (b) { b.onclick = function () { setup.unit = +b.dataset.u; render(); }; });
+      document.querySelectorAll("#ratio button").forEach(function (b) { b.onclick = function () { setup.ratio = +b.dataset.r; render(); }; });
+      document.querySelectorAll(".chip[data-n]").forEach(function (b) {
+        b.onclick = function () {
+          var n = b.dataset.n, k = setup.picked.findIndex(function (p) { return p.n === n; });
+          if (k >= 0) setup.picked.splice(k, 1);
+          else if (setup.picked.length >= MAXSEATS) { document.getElementById("err").textContent = "Poker Bank takes at most " + MAXSEATS + " players a night."; return; }
+          else { var r = names.find(function (x) { return x.n === n; }); setup.picked.push({ n: n, i: r && r.i, col: r && r.col }); }
+          render();
+        };
+      });
+      var nn = document.getElementById("newName");
+      function add() {
+        var n = nn.value.trim().replace(/\s+/g, " ");
+        if (!n) return;
+        if (setup.picked.some(function (p) { return p.n.toLowerCase() === n.toLowerCase(); })) { document.getElementById("err").textContent = n + " is already seated."; return; }
+        if (setup.picked.length >= MAXSEATS) { document.getElementById("err").textContent = "Poker Bank takes at most " + MAXSEATS + " players a night."; return; }
+        var r = names.find(function (x) { return x.n.toLowerCase() === n.toLowerCase(); });
+        setup.picked.push(r ? { n: r.n, i: r.i, col: r.col } : { n: n });
+        render();
+      }
+      document.getElementById("addName").onclick = add;
+      nn.onkeydown = function (e) { if (e.key === "Enter") add(); };
+      document.getElementById("back").onclick = function () { setup = null; go("home"); };
+      document.getElementById("go").onclick = function () {
+        if (!setup.by.trim()) { document.getElementById("err").textContent = "Type your name first — Kittu sees who ran the table."; by.focus(); return; }
+        save(RUNNER, setup.by.trim());
+        var t = now();
+        G = { v: 1, phase: "play", d: t, ratio: setup.ratio, unit: setup.unit, by: setup.by.trim(), h: 0,
+              seats: setup.picked.map(function (p, k) { return { n: p.n, i: p.i || null, col: p.col != null ? p.col : null, b: [setup.unit], c: null, at: null, e: 0 }; }) };
+        remember(setup.picked);
+        setup = null; freshGame(); persist(); go("table");
+      };
+    }
+  };
+
+  // ----- table -----
+  VIEWS.table = {
+    html: function () {
+      if (!G) return VIEWS.home.html();
+      var seats = G.seats.map(function (s, k) {
+        var tin = totalIn(s), closed = s.c != null;
+        var sub = closed
+          ? (s.c === 0 ? "Busted" : "Cashed out " + PB.grouped(s.c) + " chips = " + PB.inr(PB.value(s.c, G.ratio))) + ' · <span class="' + (PB.value(s.c, G.ratio) - tin >= 0 ? "up" : "down") + '">' + PB.signed(PB.value(s.c, G.ratio) - tin) + "</span>"
+          : s.b.length + (s.b.length === 1 ? " buy-in" : " buy-ins") + " · " + PB.grouped(tin * G.ratio) + " chips";
+        var depth = '<div class="depth">' + s.b.map(function () { return "<i></i>"; }).join("") + "</div>";
+        var btns = closed
+          ? '<div class="seatBtns" style="grid-template-columns:1fr 48px"><button class="btn ghost" data-act="reopen" data-k="' + k + '">Reopen stack</button><button class="btn ghost more" data-act="more" data-k="' + k + '" aria-label="More for ' + esc(s.n) + '">···</button></div>'
+          : '<div class="seatBtns"><button class="btn solid" data-act="buy" data-k="' + k + '">+ ' + PB.inr(G.unit) + '</button><button class="btn" data-act="cash" data-k="' + k + '">Cash out</button><button class="btn danger" data-act="bust" data-k="' + k + '">Busted</button><button class="btn ghost more" data-act="more" data-k="' + k + '" aria-label="More for ' + esc(s.n) + '">···</button></div>';
+        return '<div class="seat' + (closed ? " closed" : "") + '"><div class="seatTop"><div class="dot" style="background:' + colorOf(s, k) + '">' + esc(s.n.charAt(0).toUpperCase()) + '</div><div class="seatName">' + esc(s.n) + '</div><div class="seatIn">' + PB.inr(tin) + '</div></div><div class="seatSub">' + sub + "</div>" + (closed ? "" : depth) + btns + "</div>";
+      }).join("");
+      return '<div class="rack"><div><span>Cash in</span><b>' + PB.inr(cashIn()) + '</b></div><div><span>Chips out</span><b>' + PB.grouped(onTable()) + '</b></div><div><span>Playing</span><b>' + openSeats().length + "/" + G.seats.length + "</b></div></div>" +
+        '<p class="small muted" style="margin:6px 0 0">Started ' + fmtTime(G.d) + (G.h ? " · taken over from a hand-over link" : "") + " · " + (G.ratio === 1 ? "₹1 = 1 chip" : "₹1 = " + G.ratio + " chips") + "</p>" +
+        seats +
+        '<div class="stack" style="margin-top:14px"><button class="btn ghost" id="addP">+ Add a player</button><button class="btn ghost" id="home" style="min-height:44px;font-size:14px">Menu</button></div>';
+    },
+    bind: function () {
+      app.querySelectorAll("[data-act]").forEach(function (b) {
+        b.onclick = function () { seatAction(b.dataset.act, +b.dataset.k); };
+      });
+      document.getElementById("addP").onclick = addPlayer;
+      document.getElementById("home").onclick = function () { go("home"); };
+    }
+  };
+
+  function seatAction(act, k) {
+    var s = G.seats[k];
+    if (act === "buy") return commit(s.n + " bought in " + PB.inr(G.unit), function () { s.b.push(G.unit); });
+    if (act === "bust") return confirmSheet(s.n + " busted?", "No chips left. " + s.n + " is out at " + PB.signed(-totalIn(s)) + ". You can reopen it later.", "Busted", true, function () {
+      commit(s.n + " busted", function () { s.c = 0; s.at = now(); s.e = 1; });
+    });
+    if (act === "reopen") {
+      // Her chips are in front of the player who took her seat: reopening
+      // her would put them on the table twice.
+      var ho = handOverOf(s);
+      if (ho) return toast(s.n + " handed the seat to " + ho.t + ". Those chips are " + ho.t + "'s now.");
+      return commit(s.n + " is back in", function () { s.c = null; s.at = null; s.e = 0; });
+    }
+    if (act === "cash") return cashOut(k);
+    if (act === "more") return moreSheet(k);
+  }
+
+  function cashOut(k) {
+    var s = G.seats[k], max = onTable();
+    sheet("<h3>Cash out " + esc(s.n) + '</h3><p class="muted small">Count ' + esc(s.n) + "'s chips. Multiples of 50. Up to " + PB.grouped(max) + ' chips are on the table.</p><input class="field figin" id="ch" inputmode="numeric" pattern="[0-9]*" placeholder="Chips"><div class="status" id="worth">' + esc(s.n) + " put in " + PB.inr(totalIn(s)) + '.</div><div class="stack"><button class="btn solid" id="ok">Cash out</button><button class="btn ghost" id="no">Cancel</button></div>', function (el) {
+      var f = el.querySelector("#ch"), w = el.querySelector("#worth");
+      function check() {
+        var c = parseChips(f.value);
+        if (f.value.trim() === "") { w.className = "status"; w.textContent = s.n + " put in " + PB.inr(totalIn(s)) + "."; return null; }
+        if (c == null) { w.className = "status err"; w.textContent = "Digits only."; return null; }
+        if (c % 50) { w.className = "status err"; w.textContent = "Chips must be a multiple of 50."; return null; }
+        if (c > max) { w.className = "status err"; w.textContent = "Only " + PB.grouped(max) + " chips are on the table. Recount."; return null; }
+        var val = PB.value(c, G.ratio), net = val - totalIn(s);
+        w.className = "status ok"; w.textContent = PB.grouped(c) + " chips = " + PB.inr(val) + " · " + PB.signed(net);
+        return c;
+      }
+      f.oninput = check;
+      el.querySelector("#no").onclick = closeSheet;
+      el.querySelector("#ok").onclick = function () {
+        var c = check(); if (c == null) { f.focus(); return; }
+        closeSheet();
+        commit(s.n + " cashed out " + PB.signed(PB.value(c, G.ratio) - totalIn(s)), function () { s.c = c; s.at = now(); s.e = 1; });
+      };
+    });
+  }
+
+  function moreSheet(k) {
+    var s = G.seats[k], last = s.b[s.b.length - 1];
+    var canDropLast = s.c == null && s.b.length > 1 && onTable() >= last * G.ratio;
+    var canRemove = s.c == null && s.b.length === 1 && onTable() >= last * G.ratio && !inHandover(s);
+    sheet("<h3>" + esc(s.n) + '</h3><p class="muted small">Buy-ins: ' + s.b.map(PB.inr).join(" + ") + " = " + PB.inr(totalIn(s)) + "</p>" +
+      (s.c == null ? '<label class="lab">Different amount buy-in</label><div class="row"><input class="field figin" id="amt" inputmode="numeric" pattern="[0-9]*" placeholder="₹"><button class="btn solid" id="addAmt" style="flex:0 0 110px">Buy in</button></div>' : "") +
+      '<label class="lab">Name</label><div class="row"><input class="field" id="nm" maxlength="24" value="' + esc(s.n) + '"><button class="btn" id="ren" style="flex:0 0 110px">Rename</button></div>' +
+      '<div class="stack" style="margin-top:16px">' +
+      (s.b.length > 1 ? '<button class="btn danger" id="dropLast"' + (canDropLast ? "" : " disabled") + ">Remove last buy-in (" + PB.inr(last) + ")</button>" : "") +
+      '<button class="btn danger" id="rm"' + (canRemove ? "" : " disabled") + ">Remove from tonight</button>" +
+      '<p class="small muted">' + (s.c != null ? "Reopen the stack first to change money." : "Removing is only for someone seated by mistake (one buy-in, chips handed back).") + '</p><button class="btn ghost" id="no">Close</button></div><p class="bad small" id="err"></p>', function (el) {
+      var err = el.querySelector("#err");
+      el.querySelector("#no").onclick = closeSheet;
+      var aa = el.querySelector("#addAmt");
+      if (aa) aa.onclick = function () {
+        var a = parseChips(el.querySelector("#amt").value);
+        if (!a || a % 100) { err.textContent = "Type an amount in rupees, a multiple of 100."; return; }
+        if (a > 1000000) { err.textContent = "That is too much for one buy-in."; return; }
+        closeSheet(); commit(s.n + " bought in " + PB.inr(a), function () { s.b.push(a); });
+      };
+      el.querySelector("#ren").onclick = function () {
+        var n = el.querySelector("#nm").value.trim().replace(/\s+/g, " ");
+        if (!n) { err.textContent = "Type a name."; return; }
+        if (G.seats.some(function (x, j) { return j !== k && x.n.toLowerCase() === n.toLowerCase(); })) { err.textContent = n + " is already seated."; return; }
+        closeSheet();
+        commit(null, function () {
+          var r = names.find(function (x) { return x.n.toLowerCase() === n.toLowerCase(); });
+          var old = s.n.toLowerCase();
+          s.n = r ? r.n : n; s.i = r ? r.i : null; if (r && r.col != null) s.col = r.col;
+          (G.x || []).forEach(function (h) { if (h.f.toLowerCase() === old) h.f = s.n; if (h.t.toLowerCase() === old) h.t = s.n; });
+          if (!r) remember([{ n: n }]);
+        });
+      };
+      var dl = el.querySelector("#dropLast");
+      if (dl) dl.onclick = function () { closeSheet(); commit("Removed " + s.n + "'s last buy-in", function () { s.b.pop(); }); };
+      el.querySelector("#rm").onclick = function () { closeSheet(); commit("Removed " + s.n, function () { G.seats.splice(k, 1); }); };
+    });
+  }
+
+  function addPlayer() {
+    var seated = G.seats.map(function (s) { return s.n.toLowerCase(); });
+    var free = names.filter(function (r) { return seated.indexOf(r.n.toLowerCase()) < 0; }).sort(function (a, b) { return a.n.localeCompare(b.n); });
+    sheet('<h3>Add a player</h3><p class="muted small">Starts with one ' + PB.inr(G.unit) + ' buy-in.</p>' +
+      (free.length ? '<div class="chips">' + free.map(function (r) { return '<button class="chip" data-n="' + esc(r.n) + '">' + esc(r.n) + "</button>"; }).join("") + "</div>" : "") +
+      '<div class="row" style="margin-top:12px"><input class="field" id="nm" maxlength="24" placeholder="Type a new name"><button class="btn solid" id="ok" style="flex:0 0 90px">Seat</button></div><p class="bad small" id="err"></p>', function (el) {
+      function seat(n) {
+        n = n.trim().replace(/\s+/g, " ");
+        if (!n) return;
+        if (G.seats.some(function (s) { return s.n.toLowerCase() === n.toLowerCase(); })) { el.querySelector("#err").textContent = n + " is already seated."; return; }
+        if (G.seats.length >= MAXSEATS) { el.querySelector("#err").textContent = "Poker Bank takes at most " + MAXSEATS + " players a night."; return; }
+        var r = names.find(function (x) { return x.n.toLowerCase() === n.toLowerCase(); });
+        if (!r) remember([{ n: n }]);
+        closeSheet();
+        commit(n + " sat down", function () { G.seats.push({ n: r ? r.n : n, i: r ? r.i : null, col: r ? r.col : null, b: [G.unit], c: null, at: null, e: 0 }); });
+      }
+      el.querySelectorAll(".chip").forEach(function (b) { b.onclick = function () { seat(b.dataset.n); }; });
+      el.querySelector("#ok").onclick = function () { seat(el.querySelector("#nm").value); };
+      el.querySelector("#nm").onkeydown = function (e) { if (e.key === "Enter") seat(e.target.value); };
+    });
+  }
+
+  // ----- final count -----
+  var countDraft = (function () { var d = load(COUNT, {}); return d && typeof d === "object" && !Array.isArray(d) ? d : {}; })();
+  VIEWS.count = {
+    html: function () {
+      var open = G.seats.map(function (s, k) { return [s, k]; }).filter(function (x) { return x[0].c == null; });
+      var should = onTable();
+      var rows = open.map(function (x) {
+        var s = x[0], k = x[1], dk = s.n.toLowerCase(), v = typeof countDraft[dk] === "string" ? countDraft[dk] : "";
+        return '<div class="countRow"><div class="nm" style="font-weight:600">' + esc(s.n) + '<div class="small muted">in ' + PB.inr(totalIn(s)) + '</div></div><input class="field figin" data-k="' + k + '" inputmode="numeric" pattern="[0-9]*" placeholder="Chips" value="' + esc(v) + '"><button class="btn danger" data-zero="' + k + '">Busted</button></div>';
+      }).join("");
+      return '<h1>Final count</h1><p class="muted small">Go round the table. The stacks have to add up to the <b class="fig">' + PB.grouped(should) + "</b> chips still on the table. Multiples of 50.</p>" +
+        '<div class="card">' + rows + '</div><div class="status" id="sum"></div>' +
+        '<div class="stack"><button class="btn solid" id="settle" disabled>Settle</button><button class="btn hide" id="split">Split it and settle</button><button class="btn ghost" id="back">Back to the table</button></div>';
+    },
+    bind: function () {
+      var inputs = app.querySelectorAll("input[data-k]"), sumEl = document.getElementById("sum");
+      var settleBtn = document.getElementById("settle"), splitBtn = document.getElementById("split");
+      function state() {
+        var vals = [], bad = null, missing = 0;
+        inputs.forEach(function (f) {
+          countDraft[G.seats[+f.dataset.k].n.toLowerCase()] = f.value;
+          var t = f.value.trim();
+          if (t === "") { missing++; vals.push(null); return; }
+          var c = parseChips(t);
+          if (c == null || c % 50 || c > MAXCHIPS) bad = bad || G.seats[+f.dataset.k].n;
+          vals.push(c);
+        });
+        save(COUNT, countDraft);
+        var should = onTable(), got = PB.sum(vals.filter(function (x) { return x != null; }));
+        settleBtn.disabled = true; splitBtn.classList.add("hide");
+        if (bad) { sumEl.className = "status err"; sumEl.textContent = bad + "'s chips must be a whole multiple of 50 (at most " + PB.grouped(MAXCHIPS) + ")."; return null; }
+        var diff = got - should;
+        if (missing) { sumEl.className = "status"; sumEl.innerHTML = '<span class="fig">' + PB.grouped(got) + " of " + PB.grouped(should) + "</span> counted · " + missing + " to go"; return null; }
+        if (diff === 0) { sumEl.className = "status ok"; sumEl.textContent = "Balanced — " + PB.grouped(got) + " chips. Ready to settle."; settleBtn.disabled = false; return vals; }
+        sumEl.className = "status warn";
+        sumEl.innerHTML = (diff < 0 ? "Short by " : "Extra ") + '<b class="fig">' + PB.grouped(Math.abs(diff)) + "</b> chips (" + PB.grouped(got) + " counted, " + PB.grouped(should) + " on the table). Recount, or split the difference across the stacks that hold chips — the split is shown on the result.";
+        splitBtn.classList.remove("hide");
+        return vals;
+      }
+      inputs.forEach(function (f) { f.oninput = state; });
+      app.querySelectorAll("[data-zero]").forEach(function (b) { b.onclick = function () { var f = app.querySelector('input[data-k="' + b.dataset.zero + '"]'); f.value = "0"; state(); }; });
+      document.getElementById("back").onclick = function () { go("table"); };
+      function apply(vals, allowSplit) {
+        var ks = []; inputs.forEach(function (f) { ks.push(+f.dataset.k); });
+        var r = PB.finalCount(vals, onTable());
+        if (!r.ok) { sumEl.className = "status err"; sumEl.textContent = "That count can't be balanced without a negative stack. Recount the table."; return; }
+        if (r.record && !allowSplit) return;
+        var t = now();
+        commit(null, function () {
+          ks.forEach(function (k, j) { G.seats[k].c = r.adjusted[j]; G.seats[k].at = t; G.seats[k].e = 0; });
+          G.gap = r.record ? [r.record.chips, r.record.split] : null;
+          finish(t);
+        });
+        countDraft = {}; drop(COUNT);
+        go("result");
+      }
+      settleBtn.onclick = function () { var v = state(); if (v) apply(v, false); };
+      splitBtn.onclick = function () {
+        var v = state(); if (!v) return;
+        confirmSheet("Split the difference?", "The gap is spread evenly across the stacks that hold chips. It is written on the result for Kittu to see.", "Split it and settle", false, function () { apply(v, true); });
+      };
+      state();
+    }
+  };
+
+  function finish(t) { G.phase = "done"; G.end = t; G.result = null; }
+
+  function finishAllClosed() {
+    var diff = counted() - issued();
+    if (diff === 0) { commit(null, function () { finish(now()); }); return go("result"); }
+    // A seat that handed its chips over is counted at exactly the handed
+    // figure (audit M-a): the gap never lands on it, or the result link's
+    // hand-over note would contradict her count.
+    var movable = G.seats.map(function (_, k) { return k; }).filter(function (k) { return !handOverOf(G.seats[k]); });
+    if (!movable.length) return toast("Reopen a stack and recount — the chips don't add up.");
+    var latest = Math.max.apply(null, movable.map(function (k) { return G.seats[k].at || 0; }));
+    var ks = movable.filter(function (k) { return (G.seats[k].at || 0) === latest; });
+    var names2 = ks.map(function (k) { return G.seats[k].n; }).join(", ");
+    sheet("<h3>Chips don't add up</h3><p class=\"muted\">Everyone is cashed out, but the stacks add up to " + PB.grouped(counted()) + " of " + PB.grouped(issued()) + " chips (" + (diff < 0 ? "short " : "extra ") + PB.grouped(Math.abs(diff)) + ").</p><p class=\"muted small\">Reopen a stack and recount, or put the difference on the last cash-out (" + esc(names2) + ").</p><div class=\"stack\"><button class=\"btn\" id=\"sp\">Put it on " + esc(names2) + "</button><button class=\"btn ghost\" id=\"no\">Recount</button></div>", function (el) {
+      el.querySelector("#no").onclick = closeSheet;
+      el.querySelector("#sp").onclick = function () {
+        var others = PB.sum(G.seats.filter(function (_, k) { return ks.indexOf(k) < 0; }).map(function (s) { return s.c; }));
+        var r = PB.finalCount(ks.map(function (k) { return G.seats[k].c; }), issued() - others);
+        closeSheet();
+        if (!r.ok) return toast("That can't be balanced without a negative stack. Reopen and recount.");
+        commit(null, function () { ks.forEach(function (k, j) { G.seats[k].c = r.adjusted[j]; G.seats[k].e = 0; }); G.gap = r.record ? [r.record.chips, r.record.split] : null; finish(now()); });
+        go("result");
+      };
+    });
+  }
+
+  // ----- result -----
+  function seatsForResult() {
+    if (G.mode === "p") return G.pnl;
+    return G.seats.map(function (s) { return { n: s.n, i: s.i || null, in: totalIn(s), c: s.c, b: s.b.length, e: s.e ? 1 : 0 }; });
+  }
+  function resultPayload() {
+    var seats = seatsForResult(), ratio = G.mode === "p" ? 1 : G.ratio;
+    var night = PB.computeNight(seats.map(function (s) { return { n: s.n, id: s.n, in: s.in, c: s.c, e: s.e }; }), ratio);
+    var idx = {}; seats.forEach(function (s, k) { idx[s.n] = k; });
+    var p = { v: 1, k: "r", d: G.d, e: G.end || null, r: ratio, u: G.unit, by: G.by || null, m: G.mode === "p" ? "p" : "c",
+      p: seats.map(function (s) { var o = { n: s.n, in: s.in, c: s.c }; if (s.i) o.i = s.i; if (s.b) o.b = s.b; if (s.e) o.e = 1; return o; }),
+      t: night.transfers.map(function (t) { return [idx[t.from], idx[t.to], t.amt]; }) };
+    if (G.gap) p.g = G.gap;
+    if (G.h) p.h = 1;
+    var hx = handovers();
+    if (hx.length) p.x = hx.map(function (h) { var o = { f: h.f, t: h.t, c: h.c }; if (h.a) o.a = h.a; return o; });
+    if (p.e == null) delete p.e;
+    return { payload: p, night: night };
+  }
+  function resultHTML(night, opts) {
+    var rows = night.rows.map(function (r) {
+      return '<div class="line"><span class="nm">' + esc(r.n) + '</span><span class="fig small muted">' + (opts.assumed ? "" : PB.inr(r.in) + " in") + '</span><span class="fig ' + (r.net > 0 ? "up" : r.net < 0 ? "down" : "muted") + '" style="min-width:92px;text-align:right;font-weight:700">' + PB.signed(r.net) + "</span></div>";
+    }).join("");
+    var pays = night.transfers.length ? night.transfers.map(function (t) {
+      return '<div class="pay"><span>' + esc(t.from) + '</span><span class="arrow">→</span><span>' + esc(t.to) + '</span><span class="amt">' + PB.inr(t.amt) + "</span></div>";
+    }).join("") : '<p class="muted">Nobody owes anybody.</p>';
+    var sigma = PB.sum(night.rows.map(function (r) { return r.net; }));
+    return '<div class="card">' + rows + '</div><div class="small ' + (sigma === 0 ? "muted" : "bad") + '">Total of all results: ' + PB.signed(sigma) + (sigma === 0 ? " — it adds up." : " — this does not add up.") + "</div>" +
+      "<h2>Who pays whom</h2><div class=\"card\">" + pays + "</div>";
+  }
+  function shareText(night) {
+    var L = ["Poker · " + fmtDay(G.d) + (G.by ? " · table run by " + G.by : "")];
+    night.rows.forEach(function (r) { L.push(r.n + " " + PB.signedPlain(r.net)); });
+    L.push(""); L.push("Who pays whom:");
+    if (!night.transfers.length) L.push("Nobody owes anybody.");
+    night.transfers.forEach(function (t) { L.push(t.from + " pays " + t.to + " " + PB.inr(t.amt)); });
+    if (G.gap) L.push("", "Count was " + (G.gap[0] < 0 ? "short " : "over ") + PB.grouped(Math.abs(G.gap[0])) + " chips, split across " + G.gap[1] + " stacks.");
+    if (G.mode === "p") L.push("", "Results only — buy-ins not recorded.");
+    return L.join("\n");
+  }
+  async function share(text, url) {
+    var data = url ? { text: text + "\n" + url } : { text: text };
+    if (navigator.share) { try { await navigator.share(data); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+    try { await navigator.clipboard.writeText(data.text); toast("Copied. Paste it in WhatsApp."); }
+    catch (e) { sheet('<h3>Copy this</h3><textarea class="field" style="min-height:220px">' + esc(data.text) + '</textarea><button class="btn ghost" onclick="document.getElementById(\'layer\').innerHTML=\'\'">Close</button>'); }
+  }
+
+  VIEWS.result = {
+    html: function () {
+      if (!G || G.phase !== "done") return VIEWS.home.html();
+      var rp = resultPayload(), night = rp.night;
+      var flags = [];
+      if (G.mode === "p") flags.push('<span class="flag w">Buy-ins assumed</span>');
+      if (G.gap) flags.push('<span class="flag w">Count ' + (G.gap[0] < 0 ? "short " : "over ") + PB.grouped(Math.abs(G.gap[0])) + " chips · split " + G.gap[1] + " ways</span>");
+      if (G.h) flags.push('<span class="flag">Continued from hand-over</span>');
+      return "<h1>Tonight's result</h1><p class=\"muted small\">" + fmtDay(G.d) + (G.end ? " · " + fmtTime(G.d) + " – " + fmtTime(G.end) : "") + "</p>" + flags.join("") +
+        resultHTML(night, { assumed: G.mode === "p" }) +
+        '<div class="stack" style="margin-top:18px"><button class="btn solid" id="kittu">Send to Kittu for approval</button><button class="btn" id="txt">Share the result as text</button>' +
+        (G.mode === "p" ? "" : '<button class="btn ghost" id="reopen">Back to the table (fix something)</button>') +
+        '<button class="btn ghost" id="newg">Start a new game</button></div>' +
+        '<p class="small muted" style="margin-top:12px">Kittu taps the link on his phone and the night goes into Poker Bank only after he approves it.</p>';
+    },
+    bind: function () {
+      // "Back to the table" re-renders this view before it moves on, and
+      // html() has then drawn the home page: nothing of ours to bind.
+      if (!G || G.phase !== "done") return VIEWS.home.bind && VIEWS.home.bind();
+      // Encoded before the tap: iOS Safari drops navigator.share when an
+      // await comes between the tap and the share (K4).
+      var pre = null, preKey = JSON.stringify(resultPayload().payload);
+      PB.encodeJSON(JSON.parse(preKey)).then(function (c) { pre = c; }, function () {});
+      document.getElementById("kittu").onclick = async function () {
+        var rp = resultPayload(), same = pre && JSON.stringify(rp.payload) === preKey;
+        var code = same ? pre : await PB.encodeJSON(rp.payload), url = PB.HOST + "#r=" + code;
+        await share("Poker result for Kittu to approve (" + fmtDay(G.d) + "). Tap to open in Poker Bank:", url);
+      };
+      document.getElementById("txt").onclick = function () { share(shareText(resultPayload().night)); };
+      var ro = document.getElementById("reopen");
+      if (ro) ro.onclick = function () {
+        confirmSheet("Back to the table?", "The final count is undone: the stacks counted at the end are reopened. Cash-outs from earlier stay.", "Back to the table", false, function () {
+          commit("Reopened the table", function () {
+            // A seat that handed its chips over stays counted (audit M-a):
+            // her chips are in front of the player who took her seat.
+            var keep = G.seats.filter(function (s) { return !!handOverOf(s); });
+            var t = G.end; G.phase = "play"; G.end = null; G.gap = null;
+            G.seats.forEach(function (s) { if (keep.indexOf(s) < 0 && (s.at === t || !s.e)) { s.c = null; s.at = null; s.e = 0; } });
+          });
+          go("table");
+        });
+      };
+      document.getElementById("newg").onclick = function () {
+        confirmSheet("Start a new game?", "Tonight's result is cleared from this phone. Make sure Kittu has the link first.", "Clear and start new", true, function () { G = null; freshGame(); persist(); go("setup"); });
+      };
+    }
+  };
+
+  // ----- results only (phone note) -----
+  var pnlDraft = { text: "", unit: 2000, by: load(RUNNER, ""), date: "" };
+  function pnlPreview(text) {
+    var parsed = PB.parsePnl(text), sigma = PB.sum(parsed.rows.map(function (r) { return r.net; }));
+    var dup = null, seen = {};
+    parsed.rows.forEach(function (r) { var k = r.n.toLowerCase(); if (seen[k]) dup = r.n; seen[k] = 1; });
+    var ok = parsed.rows.length >= 2 && parsed.rows.length <= MAXSEATS && !parsed.bad.length && sigma === 0 && !dup;
+    var list = parsed.rows.map(function (r) { return '<div class="line"><span class="nm">' + esc(r.n) + '</span><span class="fig ' + (r.net > 0 ? "up" : r.net < 0 ? "down" : "muted") + '">' + PB.signed(r.net) + "</span></div>"; }).join("");
+    var status = !parsed.rows.length ? "" :
+      parsed.bad.length ? '<div class="status err">Can\'t read: ' + parsed.bad.map(esc).join(" · ") + "</div>" :
+      dup ? '<div class="status err">' + esc(dup) + " is written twice.</div>" :
+      parsed.rows.length > MAXSEATS ? '<div class="status err">Poker Bank takes at most ' + MAXSEATS + " players a night.</div>" :
+      sigma !== 0 ? '<div class="status err">These add up to ' + PB.signed(sigma) + ", not ₹0. Someone's figure is off — fix a line.</div>" :
+      '<div class="status ok">Adds up to ₹0. ' + parsed.rows.length + " players.</div>";
+    return { ok: ok, html: (list ? '<div class="card">' + list + "</div>" : "") + status };
+  }
+  VIEWS.pnl = {
+    html: function () {
+      var today = new Date(); var iso = pnlDraft.date || (today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0"));
+      pnlDraft.date = iso;
+      var parsed = PB.parsePnl(pnlDraft.text), sigma = PB.sum(parsed.rows.map(function (r) { return r.net; }));
+      var dup = null, seen = {};
+      parsed.rows.forEach(function (r) { var k = r.n.toLowerCase(); if (seen[k]) dup = r.n; seen[k] = 1; });
+      var ok = parsed.rows.length >= 2 && !parsed.bad.length && sigma === 0 && !dup;
+      var list = parsed.rows.map(function (r) { return '<div class="line"><span class="nm">' + esc(r.n) + '</span><span class="fig ' + (r.net > 0 ? "up" : r.net < 0 ? "down" : "muted") + '">' + PB.signed(r.net) + "</span></div>"; }).join("");
+      var status = !parsed.rows.length ? "" :
+        parsed.bad.length ? '<div class="status err">Can\'t read: ' + parsed.bad.map(esc).join(" · ") + "</div>" :
+        dup ? '<div class="status err">' + esc(dup) + " is written twice.</div>" :
+        sigma !== 0 ? '<div class="status err">These add up to ' + PB.signed(sigma) + ", not ₹0. Someone's figure is off — fix a line.</div>" :
+        '<div class="status ok">Adds up to ₹0. ' + parsed.rows.length + " players.</div>";
+      return "<h1>Results only</h1><p class=\"muted small\">When nobody tracked buy-ins — just each player's win or loss. One per line, like <span class=\"fig\">Bhu +1100</span>, <span class=\"fig\">Gopi nil</span>, <span class=\"fig\">Fred -10000</span>. Kittu will see these were not counted at the table.</p>" +
+        '<textarea class="field" id="t" placeholder="Bhu +1100&#10;Fred -10000&#10;Gopi nil&#10;…">' + esc(pnlDraft.text) + "</textarea>" +
+        '<div id="pv">' + pnlPreview(pnlDraft.text).html + "</div>" +
+        '<div class="row"><div><label class="lab">Date played</label><input class="field" type="date" id="dt" value="' + iso + '"></div><div><label class="lab">Your name</label><input class="field" id="by" maxlength="30" value="' + esc(pnlDraft.by) + '"></div></div>' +
+        '<div class="stack" style="margin-top:16px"><button class="btn solid" id="go"' + (pnlPreview(pnlDraft.text).ok ? "" : " disabled") + '>Work out who pays whom</button><button class="btn ghost" id="back">Back</button></div><p class="bad small" id="err"></p>';
+    },
+    bind: function () {
+      var t = document.getElementById("t");
+      t.oninput = function () {
+        pnlDraft.text = t.value;
+        var pv = pnlPreview(t.value);
+        document.getElementById("pv").innerHTML = pv.html; document.getElementById("go").disabled = !pv.ok;
+      };
+      t.onchange = t.oninput;
+      document.getElementById("dt").onchange = function (e) { pnlDraft.date = e.target.value; };
+      document.getElementById("by").oninput = function (e) { pnlDraft.by = e.target.value; };
+      document.getElementById("back").onclick = function () { go("home"); };
+      document.getElementById("go").onclick = function () {
+        pnlDraft.text = t.value;
+        if (!pnlPreview(pnlDraft.text).ok) return;
+        var parsed = PB.parsePnl(pnlDraft.text);
+        if (!pnlDraft.by.trim()) { document.getElementById("err").textContent = "Type your name — Kittu sees who sent it."; return; }
+        if (G && G.phase !== "done") return toast("A game is running on this phone. Finish or discard it first.");
+        save(RUNNER, pnlDraft.by.trim());
+        var parts = pnlDraft.date.split("-").map(Number), d = new Date(parts[0], parts[1] - 1, parts[2], 21, 0, 0).getTime();
+        if (!isFinite(d) || d > now() + 86400000) { document.getElementById("err").textContent = "Pick the date the game was played."; return; }
+        var withIds = parsed.rows.map(function (r) { var k = names.find(function (x) { return x.n.toLowerCase() === r.n.toLowerCase(); }); return { n: r.n, i: k && k.i, net: r.net }; });
+        G = { v: 1, phase: "done", mode: "p", d: d, end: null, ratio: 1, unit: 2000, by: pnlDraft.by.trim(), h: 0, seats: [], pnl: PB.assumeSeats(withIds, 2000) };
+        freshGame(); persist(); pnlDraft.text = ""; go("result");
+      };
+    }
+  };
+
+  // ----- hand over -----
+  function handOverPayload() {
+    var seated = G.seats.map(function (s) { return s.n.toLowerCase(); });
+    return { v: 1, k: "h", d: G.d, r: G.ratio, u: G.unit, by: G.by,
+      p: G.seats.map(function (s) { var o = { n: s.n, b: s.b }; if (s.i) o.i = s.i; if (s.col != null) o.col = s.col; if (s.c != null) o.c = s.c; return o; }),
+      R: names.filter(function (r) { return seated.indexOf(r.n.toLowerCase()) < 0 && r.i; }).map(function (r) { var o = { n: r.n, i: r.i }; if (r.col != null) o.col = r.col; return o; }),
+      x: handovers().map(function (h) { var o = { f: h.f, t: h.t, c: h.c }; if (h.a) o.a = h.a; return o; }) };
+  }
+  async function handOver() {
+    var code = await PB.encodeJSON(handOverPayload()), url = PB.HOST + "#h=" + code;
+    sheet('<h3>Hand over the table</h3><p class="muted small">Send this link to whoever takes over. When they open it, they get the table exactly as it is now. After that, only their phone counts — stop using this one.</p><div class="linkbox">' + esc(url) + '</div><div class="stack" style="margin-top:12px"><button class="btn solid" id="sh">Share the link</button><button class="btn ghost" id="no">Close</button></div>', function (el) {
+      el.querySelector("#sh").onclick = function () { share("Poker table hand-over (" + G.seats.length + " players). Open this to take over:", url); };
+      el.querySelector("#no").onclick = closeSheet;
+    });
+  }
+
+  // ----- link routes -----
+  function clearHash() { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+
+  VIEWS.landingR = {
+    html: function () {
+      if (view.error) return '<h1>Can\'t open this result</h1><div class="status err">' + esc(view.error) + '</div><button class="btn ghost" id="home">Go to the table page</button>';
+      var p = view.payload, seats = p.p.map(function (s) { return { n: s.n, id: s.n, in: s.in, c: s.c, e: s.e }; });
+      var night = PB.computeNight(seats, p.r);
+      var flags = [];
+      if (p.m === "p") flags.push('<span class="flag w">Buy-ins assumed</span>');
+      if (p.g) flags.push('<span class="flag w">Count ' + (p.g[0] < 0 ? "short " : "over ") + PB.grouped(Math.abs(p.g[0])) + " chips</span>");
+      if (p.h) flags.push('<span class="flag">Continued from hand-over</span>');
+      return "<h1>Result for Kittu</h1><p class=\"muted small\">" + fmtDay(p.d) + (p.by ? " · table run by " + esc(p.by) : "") + "</p>" + flags.join("") +
+        resultHTML(night, { assumed: p.m === "p" }) +
+        '<div class="stack" style="margin-top:18px"><a class="btn solid" id="open" href="pokerbank://import#r=' + esc(view.code) + '">Open in Poker Bank</a></div>' +
+        '<p class="small muted" style="margin-top:12px">Kittu: Poker Bank shows the night first. Nothing is added until you tap Approve. Others: this is just a view — nothing is saved here.</p>';
+    },
+    bind: function () { var h = document.getElementById("home"); if (h) h.onclick = function () { clearHash(); go("home"); }; }
+  };
+
+  VIEWS.landingH = {
+    html: function () {
+      if (view.error) return '<h1>Can\'t open this hand-over</h1><div class="status err">' + esc(view.error) + '</div><button class="btn ghost" id="home">Go to the table page</button>';
+      var p = view.payload, inn = PB.sum(p.p.map(function (s) { return PB.sum(s.b); }));
+      // A handed-over stack is in two seats' figures; the money went in once.
+      var seatKeys = p.p.map(function (s) { return String(s.n).toLowerCase(); });
+      inn -= PB.sum(cleanHands(p.x).filter(function (h) {
+        return seatKeys.indexOf(h.f.toLowerCase()) >= 0 && seatKeys.indexOf(h.t.toLowerCase()) >= 0;
+      }).map(function (h) { return Math.floor(h.c / Math.max(1, p.r)); }));
+      var list = p.p.map(function (s) { return '<div class="line"><span class="nm">' + esc(s.n) + '</span><span class="fig small muted">' + (s.c != null ? (s.c === 0 ? "busted" : "cashed out " + PB.grouped(s.c)) : "playing") + '</span><span class="fig">' + PB.inr(PB.sum(s.b)) + "</span></div>"; }).join("");
+      return "<h1>Take over the table</h1><p class=\"muted small\">" + (p.by ? esc(p.by) + " is handing over" : "Handed over") + " a game started " + fmtTime(p.d) + " on " + fmtDay(p.d) + ". " + p.p.length + " players, " + PB.inr(inn) + " in, " + (p.r === 1 ? "₹1 = 1 chip" : "₹1 = " + p.r + " chips") + ".</p>" +
+        '<div class="card">' + list + "</div>" +
+        (G && G.phase !== "done" ? '<div class="status warn">This phone already has a game (' + G.seats.length + " players). Taking over replaces it.</div>" : "") +
+        '<label class="lab">Your name</label><input class="field" id="by" maxlength="30" value="' + esc(load(RUNNER, "")) + '">' +
+        '<div class="stack" style="margin-top:16px"><button class="btn solid" id="take">Take over</button><button class="btn ghost" id="home">Not now</button></div><p class="bad small" id="err"></p>';
+    },
+    bind: function () {
+      document.getElementById("home").onclick = function () { clearHash(); go("home"); };
+      var tk = document.getElementById("take");
+      if (tk) tk.onclick = function () {
+        var by = document.getElementById("by").value.trim();
+        if (!by) { document.getElementById("err").textContent = "Type your name — Kittu sees who ran the table."; return; }
+        save(RUNNER, by);
+        var p = view.payload, t = now();
+        remember(cleanRoster(p.R));
+        remember(cleanRoster(p.p));
+        G = { v: 1, phase: "play", d: p.d, ratio: p.r, unit: p.u, by: by, h: 1, x: cleanHands(p.x),
+              seats: p.p.map(function (s) { return { n: s.n, i: typeof s.i === "string" && s.i ? s.i : null, col: Number.isInteger(s.col) ? s.col : null, b: s.b.slice(), c: s.c != null ? s.c : null, at: s.c != null ? t - 1 : null, e: s.c != null ? 1 : 0 }; }) };
+        freshGame(); persist(); clearHash(); go("table"); toast("You're running the table now.");
+      };
+    }
+  };
+
+  function validHandOff(p) {
+    if (!p || p.k !== "h" || p.v !== 1 || !Array.isArray(p.p) || !Number.isInteger(p.r) || !(p.r >= 1 && p.r <= 1000) ||
+        !Number.isInteger(p.u) || !(p.u >= 1 && p.u <= 1e7) || !Number.isFinite(p.d) || p.d <= 0) return false;
+    if (p.p.length > MAXSEATS) return false;
+    var seen = {};
+    return p.p.every(function (s) {
+      if (!s || typeof s.n !== "string") return false;
+      var k = s.n.trim().toLowerCase();
+      if (!k || seen[k] || k.length > 40) return false; seen[k] = 1;
+      return Array.isArray(s.b) && s.b.length && s.b.every(function (a) { return Number.isInteger(a) && a > 0 && a <= 1e7; }) &&
+        (s.c == null || (Number.isInteger(s.c) && s.c >= 0 && s.c <= 1e7));
+    });
+  }
+  // Roster names from a link: strings only, the app's 40-character limit.
+  function okRoster(r) { return r && typeof r.n === "string" && r.n.trim() && r.n.length <= 40; }
+  function cleanRoster(list) {
+    return Array.isArray(list) ? list.filter(okRoster).map(function (r) { return { n: r.n, i: typeof r.i === "string" ? r.i : null, col: Number.isInteger(r.col) ? r.col : null }; }) : [];
+  }
+  function validResult(p) {
+    return p && p.k === "r" && p.v === 1 && Array.isArray(p.p) && p.p.length && p.p.length <= MAXSEATS && Number.isInteger(p.r) && p.r >= 1 && p.r <= 1000 && Number.isFinite(p.d) &&
+      p.p.every(function (s) { return s && typeof s.n === "string" && s.n.trim() && Number.isInteger(s.in) && s.in >= 0 && Number.isInteger(s.c) && s.c >= 0; });
+  }
+
+  async function route(kind, code) {
+    try {
+      var p = await PB.decodeJSON(code);
+      if (kind === "r") { if (!validResult(p)) throw new Error("This link opens, but what is inside is not a poker result."); go("landingR", { payload: p, code: code }); }
+      else if (kind === "h") { if (!validHandOff(p)) throw new Error("This link opens, but what is inside is not a poker table."); go("landingH", { payload: p, code: code }); }
+      else if (kind === "g") { if (p && p.k === "g" && Array.isArray(p.R)) { remember(cleanRoster(p.R)); toast("Player names saved on this phone."); } clearHash(); go(G ? (G.phase === "done" ? "result" : "table") : "home"); }
+    } catch (e) {
+      go(kind === "h" ? "landingH" : "landingR", { error: e.message || "This link is damaged." });
+    }
+  }
+
+  function start() {
+    var m = (location.hash || "").match(/^#([hrg])=([A-Za-z0-9_-]+)/);
+    if (m) route(m[1], m[2]); else render();
+  }
+  window.addEventListener("hashchange", start);
+  window.addEventListener("storage", function (e) { if (e.key === KEY || e.key === null) resync(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) resync(); });
+  window.addEventListener("pageshow", function (e) { if (e.persisted) resync(); });
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+  start();
+})();
+</script>
+</body>
+</html>
