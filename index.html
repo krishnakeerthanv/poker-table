@@ -480,6 +480,10 @@ if (typeof module !== "undefined") module.exports = PB;
     });
     save(NAMES, names);
   }
+  // The group's regulars, built in so every phone can tap to add them
+  // (13-Nov-2026). Names typed on this phone are kept; these are merged in.
+  var REGULARS = [{"n":"Abhilash","i":"13EF782D","col":7},{"n":"Bh1","i":"308BB73E","col":1},{"n":"Divya","i":"15FB179F","col":11},{"n":"Freedy","i":"4758E661","col":4},{"n":"Gopi","i":"12A4B2C2","col":9},{"n":"Kittu","i":"0B5DECCF","col":0},{"n":"Kushal","i":"F3794EC8","col":1},{"n":"Maganti","i":"D2E5A476","col":6},{"n":"Nihith","i":"5178612E","col":10},{"n":"Rakesh","i":"479F9C46","col":8},{"n":"Siddu","i":"1E8EE6ED","col":3},{"n":"TG","i":"AF52B902","col":6},{"n":"Thati","i":"1B2DD5A9","col":2},{"n":"Unv Teja","i":"161A848E","col":0},{"n":"Yogi","i":"841360A6","col":2}];
+  remember(REGULARS);
 
   // ---------- money helpers on the live game ----------
   function totalIn(s) { return PB.sum(s.b); }

@@ -1,7 +1,7 @@
 // Poker Table — offline cache. The page is one file; cache it on first load
 // and serve it from cache when there is no signal at the table.
 // Bump VERSION whenever index.html changes so phones pick up the new page.
-var VERSION = "pbt-v4-20261112";
+var VERSION = "pbt-v4-20261113";
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(["./", "./index.html"]); }));
   self.skipWaiting();
