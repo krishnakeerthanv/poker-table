@@ -79,6 +79,9 @@ label.lab{display:block;font-size:12px;letter-spacing:.1em;text-transform:upperc
 .line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .line:last-child{border-bottom:0}
 .line .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 4.4 review: the standings table fits a 320-375 px phone; names wrap instead of vanishing */
+#stTable .line{gap:6px}#stTable .fig{font-size:13px}#stTable .c-net{font-size:14px}#stTable .nm{white-space:normal;overflow-wrap:anywhere;min-width:64px}
+@media (max-width:359px){#stTable .c-avg{display:none}}
 .pay{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--line)}
 .pay:last-child{border-bottom:0}
 .pay .arrow{color:var(--muted)}
@@ -802,6 +805,150 @@ PB.cloud = (function () {
     sendResult: sendResult, stream: stream, applyEvent: applyEvent, uid: function () { return tok ? tok.uid : (readAuth() || {}).uid || null; }
   };
 })();
+// 4.4: the stats explorer. Everything is derived from standings v2
+// ({ v: 2, up, season, players: [{id, n, col}], nights: [{d, rows: [{id, net, bi, in}]}] }),
+// which Kittu's app writes from the nights he has shared. Cloud data is
+// anyone's: every field is checked and maps have no prototype.
+PB.stats = (function () {
+  var ID = /^[A-Za-z0-9]{1,40}$/;
+  function isInt(v) { return typeof v === "number" && isFinite(v) && Math.floor(v) === v; }
+  function list(v) {
+    if (Array.isArray(v)) return v;
+    if (v && typeof v === "object") return Object.keys(v).sort(function (a, b) { return a - b; }).map(function (k) { return v[k]; });
+    return [];
+  }
+  // IST calendar year (UTC+5:30), whatever the phone's zone.
+  function yearOf(ms) { return String(new Date(ms + 19800000).getUTCFullYear()); }
+  // null when there is nothing usable (missing, v1, damaged, empty).
+  function parse(s) {
+    if (!s || typeof s !== "object" || s.v !== 2) return null;
+    var players = Object.create(null), order = [];
+    list(s.players).slice(0, 500).forEach(function (p) {
+      if (!p || typeof p.id !== "string" || !ID.test(p.id) || players[p.id] || typeof p.n !== "string" || !p.n.trim()) return;
+      players[p.id] = { id: p.id, n: p.n.slice(0, 40), col: isInt(p.col) ? p.col : null };
+      order.push(p.id);
+    });
+    var nights = [];
+    list(s.nights).slice(0, 3000).forEach(function (nt) {
+      if (!nt || typeof nt !== "object" || typeof nt.d !== "number" || !isFinite(nt.d) || nt.d <= 0) return;
+      var seen = Object.create(null), rows = [];
+      list(nt.rows).slice(0, 40).forEach(function (r) {
+        if (!r || typeof r.id !== "string" || !players[r.id] || seen[r.id] || !isInt(r.net) || Math.abs(r.net) > 1e9) return;
+        seen[r.id] = 1;
+        // bi/in are absent on a night whose buy-ins were assumed (a
+        // results-only entry): null, and every buy-in figure skips it.
+        rows.push({ id: r.id, net: r.net, bi: isInt(r.bi) && r.bi >= 0 && r.bi <= 1000 ? r.bi : null, in: isInt(r["in"]) && r["in"] >= 0 ? r["in"] : null });
+      });
+      if (rows.length) nights.push({ d: nt.d, rows: rows });
+    });
+    if (!nights.length) return null;
+    // Newest first (not trusted from the cloud); each night's rows by net.
+    nights.sort(function (a, b) { return b.d - a.d; });
+    nights.forEach(function (nt) { nt.rows.sort(function (a, b) { return b.net - a.net || cmpName(players, a.id, b.id); }); });
+    var season = typeof s.season === "string" && /^20[0-9]{2}$/.test(s.season) ? s.season : yearOf(nights[0].d);
+    return { up: typeof s.up === "number" && isFinite(s.up) ? s.up : 0, season: season, players: players, order: order, nights: nights };
+  }
+  // The app's rounding (Swift .rounded(): halves away from zero), so −2.5 is −3 as on the Stats screen.
+  function rnd(x) { return x < 0 ? -Math.round(-x) : Math.round(x); }
+  function cmpName(players, a, b) { var x = players[a].n.toLowerCase(), y = players[b].n.toLowerCase(); return x < y ? -1 : x > y ? 1 : a < b ? -1 : a > b ? 1 : 0; }
+  function seasonNights(S) { return S.nights.filter(function (nt) { return yearOf(nt.d) === S.season; }); }
+  // One standings table. sort: net | nights | win | avg.
+  function table(S, which, sort) {
+    var nights = which === "season" ? seasonNights(S) : S.nights, by = Object.create(null), out = [];
+    nights.forEach(function (nt) {
+      nt.rows.forEach(function (r) {
+        var p = by[r.id] || (by[r.id] = { id: r.id, n: S.players[r.id].n, col: S.players[r.id].col, net: 0, nights: 0, wins: 0 });
+        p.net += r.net; p.nights++; if (r.net > 0) p.wins++;
+      });
+    });
+    Object.keys(by).forEach(function (id) { var p = by[id]; p.win = p.wins / p.nights; p.avg = rnd(p.net / p.nights); out.push(p); });
+    var key = { net: "net", nights: "nights", win: "win", avg: "avg" }[sort] || "net";
+    return out.sort(function (a, b) { return b[key] - a[key] || b.net - a.net || cmpName(S.players, a.id, b.id); });
+  }
+  // A player's nights, oldest first: [{d, net, bi, in, night}].
+  function history(S, id) {
+    var h = [];
+    for (var i = S.nights.length - 1; i >= 0; i--) {
+      var nt = S.nights[i];
+      for (var j = 0; j < nt.rows.length; j++) if (nt.rows[j].id === id) h.push({ d: nt.d, net: nt.rows[j].net, bi: nt.rows[j].bi, "in": nt.rows[j]["in"], night: nt });
+    }
+    return h;
+  }
+  function pick(h, better) { var b = null; h.forEach(function (x) { if (!b || better(x, b)) b = x; }); return b; }
+  // Pairwise: other ids with nights together, how often each finished above.
+  function pairs(S, id) {
+    var m = Object.create(null);
+    S.nights.forEach(function (nt) {
+      var me = null; nt.rows.forEach(function (r) { if (r.id === id) me = r; });
+      if (!me) return;
+      nt.rows.forEach(function (r) {
+        if (r.id === id) return;
+        var p = m[r.id] || (m[r.id] = { id: r.id, together: 0, above: 0, below: 0 });
+        p.together++; if (me.net > r.net) p.above++; else if (me.net < r.net) p.below++;
+      });
+    });
+    return Object.keys(m).map(function (k) { return m[k]; });
+  }
+  function profile(S, id) {
+    if (!S.players[id]) return null;
+    var h = history(S, id);
+    if (!h.length) return { id: id, n: S.players[id].n, col: S.players[id].col, nights: 0, net: 0, wins: 0, win: 0, run: [], best: null, worst: null, streak: 0, bpn: null, nemesis: null, victim: null };
+    var net = 0, run = h.map(function (x) { net += x.net; return net; }), wins = h.filter(function (x) { return x.net > 0; }).length;
+    // Current streak: the newest night's sign, back while it holds. A ₹0 night ends it.
+    var streak = 0, last = h[h.length - 1].net, sgn = last > 0 ? 1 : last < 0 ? -1 : 0;
+    if (sgn) for (var i = h.length - 1; i >= 0 && (h[i].net > 0 ? 1 : h[i].net < 0 ? -1 : 0) === sgn; i--) streak += sgn;
+    var pr = pairs(S, id).filter(function (p) { return p.together >= 3; }), known = h.filter(function (x) { return x.bi !== null; }),
+      biSum = known.reduce(function (a, x) { return a + x.bi; }, 0);
+    function top(f) {
+      var b = null; pr.forEach(function (p) { if (p[f] > 0 && (!b || p[f] > b[f] || (p[f] === b[f] && (p.together < b.together || (p.together === b.together && cmpName(S.players, p.id, b.id) < 0))))) b = p; });
+      return b ? { id: b.id, n: S.players[b.id].n, count: b[f], together: b.together } : null;
+    }
+    // As the app's profile: a best night only once he was up (the first
+    // night of the record wins a tie), a worst only once he was down;
+    // buy-ins a night over the nights whose buy-ins are known (null: none).
+    var best = pick(h, function (x, b) { return x.net > b.net; }), worst = pick(h, function (x, b) { return x.net < b.net; });
+    return { id: id, n: S.players[id].n, col: S.players[id].col, nights: h.length, net: net, wins: wins, win: wins / h.length, run: run,
+      best: best && best.net > 0 ? best : null, worst: worst && worst.net < 0 ? worst : null, streak: streak,
+      bpn: known.length ? biSum / known.length : null, bpnX10: known.length ? rnd(biSum * 10 / known.length) : null, nemesis: top("below"), victim: top("above") };
+  }
+  function longestWin(h) { var best = 0, cur = 0; h.forEach(function (x) { cur = x.net > 0 ? cur + 1 : 0; if (cur > best) best = cur; }); return best; }
+  function records(S) {
+    var big = null, loss = null, bi = null, chrono = S.nights.slice().reverse();
+    chrono.forEach(function (nt) {
+      nt.rows.forEach(function (r) {
+        if (!big || r.net > big.net) big = { id: r.id, n: S.players[r.id].n, net: r.net, d: nt.d };
+        if (!loss || r.net < loss.net) loss = { id: r.id, n: S.players[r.id].n, net: r.net, d: nt.d };
+        if (r.bi !== null && r.bi > 0 && (!bi || r.bi > bi.bi)) bi = { id: r.id, n: S.players[r.id].n, bi: r.bi, d: nt.d };
+      });
+    });
+    var streak = null, iron = null, most = null;
+    S.order.forEach(function (id) {
+      var h = history(S, id); if (!h.length) return;
+      var w = longestWin(h), run = 0, bestRun = 0;
+      chrono.forEach(function (nt) { var there = nt.rows.some(function (r) { return r.id === id; }); run = there ? run + 1 : 0; if (run > bestRun) bestRun = run; });
+      var n = S.players[id].n;
+      if (w > 0 && (!streak || w > streak.count)) streak = { id: id, n: n, count: w };
+      if (!iron || bestRun > iron.count) iron = { id: id, n: n, count: bestRun };
+      if (!most || h.length > most.count) most = { id: id, n: n, count: h.length };
+    });
+    return { big: big, loss: loss && loss.net < 0 ? loss : null, streak: streak, bi: bi, iron: iron, most: most };
+  }
+  function h2h(S, a, b) {
+    if (!S.players[a] || !S.players[b] || a === b) return null;
+    var o = { a: a, b: b, together: 0, aAbove: 0, bAbove: 0, aNet: 0, bNet: 0, aBest: null, bBest: null, last: 0 };
+    S.nights.forEach(function (nt) {
+      var ra = null, rb = null; nt.rows.forEach(function (r) { if (r.id === a) ra = r; if (r.id === b) rb = r; });
+      if (!ra || !rb) return;
+      o.together++; o.aNet += ra.net; o.bNet += rb.net;
+      if (ra.net > rb.net) o.aAbove++; else if (rb.net > ra.net) o.bAbove++;
+      if (!o.aBest || ra.net >= o.aBest.net) o.aBest = { net: ra.net, d: nt.d };
+      if (!o.bBest || rb.net >= o.bBest.net) o.bBest = { net: rb.net, d: nt.d };
+      if (nt.d > o.last) o.last = nt.d;
+    });
+    return o;
+  }
+  return { rnd: rnd, parse: parse, table: table, profile: profile, records: records, h2h: h2h, history: history, seasonNights: seasonNights, yearOf: yearOf };
+})();
 if (typeof module !== "undefined") module.exports = PB;
 /*CORE-END*/
 /* ---------- the page ---------- */
@@ -1143,15 +1290,6 @@ if (typeof module !== "undefined") module.exports = PB;
       if (view.name === "watch" && view.w === w) render();
     });
   }
-  function openStandings() {
-    var v = { name: "standings", scrollTop: true };
-    view = v; render();
-    PB.cloud.get("g/" + GK + "/standings").then(function (r) {
-      if (view !== v) return;
-      v.s = r.ok ? r.data : r.denied ? null : "off";
-      render();
-    });
-  }
 
   // ---------- the group's settle-up board and Friday RSVP (4.2) ----------
   // Both are read live from the group (Kittu's app publishes them). Names
@@ -1169,7 +1307,7 @@ if (typeof module !== "undefined") module.exports = PB;
         else return; // offline: keep what is on screen
         if (k === "rsvp") club.loaded = true;
         // Re-drawn under an open sheet is fine; the sheet lives in its own layer.
-        if (["home", "table"].indexOf(view.name) >= 0) render();
+        if (["home", "table", "friday"].indexOf(view.name) >= 0) render();
         if (k === "rsvp") askNow();
       }));
     });
@@ -1292,7 +1430,8 @@ if (typeof module !== "undefined") module.exports = PB;
   // The nearest upcoming open card (today counts).
   function rsvpOpen() { var today = isoDay(now()); return rsvpCards().filter(function (x) { return x.c.open === true && x.day >= today; })[0] || null; }
   function rsvpDayTitle(x) { var p = x.day.split("-").map(Number); return fmtDay(new Date(p[0], p[1] - 1, p[2]).getTime()); }
-  function rsvpCardHTML() {
+  // friday: the Friday page's card ("You: <name> · In [Change]").
+  function rsvpCardHTML(friday) {
     var x = rsvpOpen(); if (!x) return "";
     var ans = rsvpAnswers(x.c), by = { "in": [], maybe: [], out: [] };
     ans.forEach(function (a) { by[a.s].push(a.n); });
@@ -1303,8 +1442,9 @@ if (typeof module !== "undefined") module.exports = PB;
       [["in", "In"], ["maybe", "Maybe"], ["out", "Out"]].filter(function (p) { return by[p[0]].length; }).map(function (p) {
         return '<div class="small muted" style="margin-top:4px;overflow-wrap:anywhere"><b>' + p[1] + ":</b> " + by[p[0]].map(esc).join(", ") + "</div>";
       }).join("") +
-      (mine ? '<div class="small muted" style="margin-top:6px">You (' + esc(mine.n) + "): " + { "in": "in", maybe: "maybe", out: "out" }[mine.s] + "</div>" : "") +
-      '<div class="row" style="margin-top:10px"><button class="btn solid" id="rsvpGo">Answer</button></div></div>';
+      (friday && mine ? '<div class="row" id="youLine" style="margin-top:10px;align-items:center;justify-content:space-between"><div style="overflow-wrap:anywhere">You: <b>' + esc(mine.n) + "</b> · " + { "in": "In", maybe: "Maybe", out: "Out" }[mine.s] + '</div><button class="btn ghost" id="rsvpChange" style="flex:0 0 auto">Change</button></div>'
+        : (mine ? '<div class="small muted" style="margin-top:6px">You (' + esc(mine.n) + "): " + { "in": "in", maybe: "maybe", out: "out" }[mine.s] + "</div>" : "") +
+          '<div class="row" style="margin-top:10px"><button class="btn solid" id="rsvpGo">Answer</button></div>') + "</div>";
   }
   function rsvpPick(x, msg) {
     var list = names.map(function (r) { return r.n; }).filter(okName).sort(function (a, b) { return a.localeCompare(b); });
@@ -1357,7 +1497,7 @@ if (typeof module !== "undefined") module.exports = PB;
             var c = club.rsvp && club.rsvp[x.day];
             if (c) { if (!c.r || typeof c.r !== "object") c.r = {}; c.r[pk] = { n: who.slice(0, 40), s: s, at: now(), u: t.uid }; }
             closeSheet(); toast(s === "in" ? "You're in." : s === "out" ? "Marked as out." : "Marked as maybe.");
-            if (view.name === "home") render();
+            if (view.name === "home" || view.name === "friday") render();
             return;
           }
           var why = r.denied ? "This card is closed now. Ask Kittu." : "No connection. Nothing changed — try again.";
@@ -1504,7 +1644,7 @@ if (typeof module !== "undefined") module.exports = PB;
   function render() {
     if (G && G.lost && ["table", "count", "result"].indexOf(view.name) >= 0) view = { name: "lost" };
     closeDockIfNeeded();
-    whoEl.textContent = view.name === "watch" ? "Watching" : G && G.by ? "Run by " + G.by : "";
+    whoEl.textContent = view.name === "watch" ? "Watching" : view.name === "friday" ? "" : G && G.by ? "Run by " + G.by : "";
     paintSync();
     var v = VIEWS[view.name] || VIEWS.home;
     app.innerHTML = v.html();
@@ -2237,27 +2377,163 @@ if (typeof module !== "undefined") module.exports = PB;
     bind: function () { document.getElementById("home").onclick = function () { clearHash(); go("home"); }; }
   };
 
-  // ----- standings (C4) -----
-  function standTable(title, list) {
-    list = arr(list).filter(function (r) { return r && typeof r.n === "string"; });
-    if (!list.length) return "";
-    return "<h2>" + esc(title) + '</h2><div class="card"><div class="line small muted"><span class="nm">Player</span><span style="min-width:52px;text-align:right">Nights</span><span style="min-width:44px;text-align:right">Won</span><span style="min-width:96px;text-align:right">Net</span></div>' +
-      list.map(function (r) {
-        var net = Math.round(+r.net || 0);
-        return '<div class="line"><span class="nm">' + esc(r.n) + '</span><span class="fig small muted" style="min-width:52px;text-align:right">' + (r.nights | 0) + '</span><span class="fig small muted" style="min-width:44px;text-align:right">' + (r.won | 0) +
-          '</span><span class="fig ' + (net > 0 ? "up" : net < 0 ? "down" : "muted") + '" style="min-width:96px;text-align:right;font-weight:700">' + PB.signed(net) + "</span></div>";
-      }).join("") + "</div>";
+  // ----- 4.4: the stats explorer (standings v2) and the Friday page -----
+  // Everything comes from /standings (v2); see PB.stats. Names are escaped
+  // wherever they are drawn; ids are alphanumerics, escaped all the same.
+  var stand = { s: undefined, gk: null, busy: false, again: false };
+  function loadStand() {
+    if (!GK) return;
+    if (stand.gk !== GK) { stand.gk = GK; stand.s = undefined; }
+    if (stand.busy) { stand.again = true; return; }
+    stand.busy = true;
+    var gk = GK;
+    PB.cloud.get("g/" + gk + "/standings").then(function (r) {
+      stand.busy = false;
+      if (gk !== GK) return;
+      stand.s = r.ok ? PB.stats.parse(r.data) : r.denied ? null : (stand.s && stand.s !== "off" ? stand.s : "off");
+      if (stand.again) { stand.again = false; return loadStand(); }
+      if (view.name === "friday" || view.name === "stats") render();
+    });
   }
-  VIEWS.standings = {
+  function newEx() { return { tab: "season", sort: "net", sub: null, more: 10, a: "", b: "" }; }
+  function pct(x) { return Math.round(x * 100) + "%"; }
+  function figCls(v) { return v > 0 ? "up" : v < 0 ? "down" : "muted"; }
+  function pname(S, id) { return S.players[id] ? S.players[id].n : "?"; }
+  function pdot(S, id, k) { var p = S.players[id] || {}; return colorOf({ col: p.col }, k | 0); }
+  function sparkSVG(run) {
+    if (!run.length) return "";
+    var pts = run.length === 1 ? [0, run[0]] : [0].concat(run), W = 300, H = 64, P = 4;
+    var lo = Math.min(0, Math.min.apply(null, pts)), hi = Math.max(0, Math.max.apply(null, pts)), span = hi - lo || 1;
+    function x(i) { return (P + i * (W - 2 * P) / (pts.length - 1)).toFixed(1); }
+    function y(v) { return (P + (hi - v) * (H - 2 * P) / span).toFixed(1); }
+    var line = pts.map(function (v, i) { return x(i) + "," + y(v); }).join(" "), end = run[run.length - 1];
+    return '<svg id="spark" viewBox="0 0 ' + W + " " + H + '" width="100%" height="' + H + '" role="img" aria-label="Running total" style="display:block;margin:8px 0">' +
+      '<line x1="' + P + '" x2="' + (W - P) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#272A2E" stroke-width="1"/>' +
+      '<polyline fill="none" stroke="' + (end >= 0 ? "var(--green)" : "var(--redSoft)") + '" stroke-width="2" stroke-linejoin="round" points="' + line + '"/></svg>';
+  }
+  function kv(k, label, value, cls) {
+    return '<div class="line" data-k="' + k + '"><span class="muted">' + label + '</span><span class="fig ' + (cls || "") + '" style="text-align:right;overflow-wrap:anywhere">' + value + "</span></div>";
+  }
+  function streakText(n) { return n > 0 ? n + " up" : n < 0 ? (-n) + " down" : "—"; }
+  function profileHTML(S, id) {
+    var p = PB.stats.profile(S, id);
+    if (!p) return '<p class="muted">That player isn\'t in the standings.</p>';
+    return '<div id="profile"><h2 style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:' + pdot(S, id) + '">' + esc(p.n.charAt(0).toUpperCase()) + "</span>" + esc(p.n) + '</h2><p class="small muted">All-time · shared nights</p>' +
+      sparkSVG(p.run) + '<div class="card">' +
+      kv("net", "Net", PB.signed(p.net), figCls(p.net)) + kv("nights", "Nights", String(p.nights)) + kv("win", "Win%", pct(p.win)) +
+      kv("best", "Best night", p.best ? PB.signed(p.best.net) + " · " + esc(fmtDay(p.best.d)) : "—", p.best ? figCls(p.best.net) : "") +
+      kv("worst", "Worst night", p.worst ? PB.signed(p.worst.net) + " · " + esc(fmtDay(p.worst.d)) : "—", p.worst ? figCls(p.worst.net) : "") +
+      kv("streak", "Current streak", streakText(p.streak), figCls(p.streak)) + kv("bpn", "Buy-ins a night", p.bpnX10 === null ? "—" : (p.bpnX10 / 10).toFixed(1)) +
+      kv("nemesis", "Nemesis", p.nemesis ? esc(p.nemesis.n) + " · above " + p.nemesis.count + " of " + p.nemesis.together : "—") +
+      kv("victim", "Favourite victim", p.victim ? esc(p.victim.n) + " · above " + p.victim.count + " of " + p.victim.together : "—") + "</div></div>";
+  }
+  function nightHTML(S, d) {
+    var nt = S.nights.filter(function (x) { return x.d === d; })[0];
+    if (!nt) return '<p class="muted">That night isn\'t in the standings any more.</p>';
+    return '<div id="nightView"><h2>' + esc(fmtDay(nt.d)) + '</h2><p class="small muted">' + nt.rows.length + ' players</p><div class="card"><div class="line small muted"><span class="nm">Player</span><span style="min-width:60px;text-align:right">Buy-ins</span><span style="min-width:96px;text-align:right">Net</span></div>' +
+      nt.rows.map(function (r) {
+        return '<div class="line nRow"><span class="nm">' + esc(pname(S, r.id)) + '</span><span class="fig small muted" style="min-width:60px;text-align:right">' + (r.bi === null ? "—" : r.bi) + '</span><span class="fig ' + figCls(r.net) + '" style="min-width:96px;text-align:right;font-weight:700">' + PB.signed(r.net) + "</span></div>";
+      }).join("") + "</div></div>";
+  }
+  function tableHTML(S, ex) {
+    var rows = PB.stats.table(S, ex.tab, ex.sort);
+    var tabs = '<div class="seg" id="exTabs"><button data-tab="season" class="' + (ex.tab === "season" ? "on" : "") + '">Season ' + esc(S.season) + '</button><button data-tab="all" class="' + (ex.tab === "all" ? "on" : "") + '">All-time</button></div>';
+    var sorts = '<div class="seg" id="exSort" style="margin-top:8px">' + [["net", "Net"], ["nights", "Nights"], ["win", "Win%"], ["avg", "Avg"]].map(function (s) {
+      return '<button data-sort="' + s[0] + '" class="' + (ex.sort === s[0] ? "on" : "") + '">' + s[1] + "</button>"; }).join("") + "</div>";
+    var body = rows.length ? '<div class="card" id="stTable"><div class="line small muted"><span class="nm">Player</span><span style="min-width:30px;text-align:right">Nts</span><span style="min-width:38px;text-align:right">Win</span><span class="c-avg" style="min-width:62px;text-align:right">Avg</span><span style="min-width:78px;text-align:right">Net</span></div>' +
+      rows.map(function (r) {
+        return '<div class="line stRow" data-p="' + esc(r.id) + '" style="cursor:pointer"><span class="nm c-name">' + esc(r.n) + '</span><span class="fig small muted c-nights" style="min-width:30px;text-align:right">' + r.nights +
+          '</span><span class="fig small muted c-win" style="min-width:38px;text-align:right">' + pct(r.win) + '</span><span class="fig small c-avg ' + figCls(r.avg) + '" style="min-width:62px;text-align:right">' + PB.signed(r.avg) +
+          '</span><span class="fig c-net ' + figCls(r.net) + '" style="min-width:78px;text-align:right;font-weight:700">' + PB.signed(r.net) + "</span></div>";
+      }).join("") + "</div>" : '<p class="muted">No nights this season yet.</p>';
+    return "<h2>Standings</h2>" + tabs + sorts + body;
+  }
+  function recentHTML(S, ex) {
+    var list = S.nights.slice(0, ex.more);
+    return '<h2>Recent nights</h2><div class="card" id="recent">' + list.map(function (nt) {
+      var w = nt.rows[0], top = nt.rows.slice(0, 3).map(function (r) { return esc(pname(S, r.id)); }).join(", ");
+      return '<div class="line nightRow" data-n="' + nt.d + '" style="cursor:pointer"><div style="min-width:0"><div>' + esc(fmtDay(nt.d)) + ' · <span class="muted small">' + nt.rows.length + ' players</span></div><div class="small muted" style="overflow-wrap:anywhere">' + top + "</div></div>" +
+        '<div style="text-align:right;flex:0 0 auto"><div class="small" style="overflow-wrap:anywhere">' + esc(pname(S, w.id)) + '</div><div class="fig ' + figCls(w.net) + '">' + PB.signed(w.net) + "</div></div></div>";
+    }).join("") + "</div>" + (S.nights.length > ex.more ? '<button class="btn ghost" id="moreNights">Show 10 more</button>' : "");
+  }
+  function recordsHTML(S) {
+    var R = PB.stats.records(S);
+    function who(o, tail) { return o ? esc(o.n) + " · " + tail : "—"; }
+    return '<h2>Records</h2><div class="card" id="records">' +
+      kv("big", "Biggest night", who(R.big, R.big ? PB.signed(R.big.net) + " · " + esc(fmtDay(R.big.d)) : ""), "up") +
+      kv("loss", "Biggest loss", who(R.loss, R.loss ? PB.signed(R.loss.net) + " · " + esc(fmtDay(R.loss.d)) : ""), "down") +
+      kv("streak", "Longest winning streak", who(R.streak, R.streak ? R.streak.count + " nights" : "")) +
+      kv("bi", "Most buy-ins in a night", who(R.bi, R.bi ? R.bi.bi + " · " + esc(fmtDay(R.bi.d)) : "")) +
+      kv("iron", "Iron man", who(R.iron, R.iron ? R.iron.count + " nights in a row" : "")) +
+      kv("most", "Most nights", who(R.most, R.most ? R.most.count + " nights" : "")) + "</div>";
+  }
+  function h2hHTML(S, ex) {
+    var ids = S.order.filter(function (id) { return PB.stats.history(S, id).length; }).sort(function (a, b) { return pname(S, a).toLowerCase() < pname(S, b).toLowerCase() ? -1 : 1; });
+    function sel(idA, val) {
+      return '<select class="field" id="' + idA + '" style="flex:1;min-width:0"><option value="">Pick a player</option>' + ids.map(function (id) {
+        return '<option value="' + esc(id) + '"' + (id === val ? " selected" : "") + ">" + esc(pname(S, id)) + "</option>"; }).join("") + "</select>";
+    }
+    var out = '<h2>Head-to-head</h2><div class="row" style="gap:8px">' + sel("h2hA", ex.a) + sel("h2hB", ex.b) + "</div>";
+    var o = ex.a && ex.b ? PB.stats.h2h(S, ex.a, ex.b) : null;
+    if (ex.a && ex.b && ex.a === ex.b) return out + '<p class="muted small">Pick two different players.</p>';
+    if (!o) return out;
+    if (!o.together) return out + '<div class="card" id="h2h"><p class="muted">These two haven\'t played a shared night together.</p></div>';
+    var A = esc(pname(S, o.a)), B = esc(pname(S, o.b));
+    return out + '<div class="card" id="h2h">' + kv("together", "Nights together", String(o.together)) +
+      kv("above", "Finished above", A + " " + o.aAbove + " · " + B + " " + o.bAbove) +
+      kv("aNet", A + " in those nights", PB.signed(o.aNet), figCls(o.aNet)) + kv("bNet", B + " in those nights", PB.signed(o.bNet), figCls(o.bNet)) +
+      kv("aBest", A + "'s biggest night", PB.signed(o.aBest.net) + " · " + esc(fmtDay(o.aBest.d)), figCls(o.aBest.net)) +
+      kv("bBest", B + "'s biggest night", PB.signed(o.bBest.net) + " · " + esc(fmtDay(o.bBest.d)), figCls(o.bBest.net)) +
+      kv("last", "Last meeting", esc(fmtDay(o.last))) + "</div>";
+  }
+  function exHTML() {
+    var ex = view.ex || (view.ex = newEx()), S = stand.s;
+    if (S === undefined) return '<div id="explorer"><p class="muted">Loading the standings…</p></div>';
+    if (S === "off") return '<div id="explorer"><div class="status warn">No connection. Try again when you have signal.</div></div>';
+    if (!S) return '<div id="explorer"><h2>Standings</h2><p class="muted">No standings yet.</p></div>';
+    if (ex.sub) return '<div id="explorer"><button class="btn ghost" id="exBack" style="margin-top:8px">‹ Back to the standings</button>' +
+      (ex.sub.k === "p" ? profileHTML(S, ex.sub.id) : nightHTML(S, ex.sub.d)) + "</div>";
+    var chips = S.order.filter(function (id) { return PB.stats.history(S, id).length; }).sort(function (a, b) { return pname(S, a).toLowerCase() < pname(S, b).toLowerCase() ? -1 : 1; });
+    return '<div id="explorer">' + tableHTML(S, ex) +
+      '<h2>Players</h2><div class="chips" id="pchips">' + chips.map(function (id, k) { return '<button class="chip pchip" data-p="' + esc(id) + '">' + esc(pname(S, id)) + "</button>"; }).join("") + "</div>" +
+      recentHTML(S, ex) + recordsHTML(S) + h2hHTML(S, ex) +
+      '<p class="small muted" style="margin-top:12px">Only nights Kittu has shared count.' + (S.up > 0 ? " Updated " + esc(fmtDay(S.up)) + ", " + fmtTime(S.up) + "." : "") + "</p></div>";
+  }
+  function exBind() {
+    var ex = view.ex, el = document.getElementById("explorer");
+    if (!ex || !el) return;
+    function set(f) { return function (e) { f(e.currentTarget); render(); }; }
+    el.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = set(function (t) { ex.tab = t.dataset.tab === "all" ? "all" : "season"; }); });
+    el.querySelectorAll("[data-sort]").forEach(function (b) { b.onclick = set(function (t) { ex.sort = t.dataset.sort; }); });
+    el.querySelectorAll("[data-p]").forEach(function (b) { b.onclick = set(function (t) { ex.sub = { k: "p", id: t.dataset.p }; view.scrollTop = true; }); });
+    el.querySelectorAll("[data-n]").forEach(function (b) { b.onclick = set(function (t) { ex.sub = { k: "n", d: +t.dataset.n }; view.scrollTop = true; }); });
+    var mo = document.getElementById("moreNights"); if (mo) mo.onclick = set(function () { ex.more += 10; });
+    var bk = document.getElementById("exBack"); if (bk) bk.onclick = set(function () { ex.sub = null; view.scrollTop = true; });
+    ["h2hA", "h2hB"].forEach(function (idA) { var s = document.getElementById(idA); if (s) s.onchange = set(function (t) { ex[idA === "h2hA" ? "a" : "b"] = t.value; }); });
+  }
+  function openStandings() { go("stats", { ex: newEx() }); loadStand(); }
+  function openFriday() {
+    try { history.replaceState(null, "", location.pathname + location.search + "#friday"); } catch (e) {}
+    clubOpen(); go("friday", { ex: newEx() }); loadStand();
+  }
+  VIEWS.stats = {
+    html: function () { return '<h1>Standings</h1>' + exHTML() + '<div class="stack" style="margin-top:16px"><button class="btn ghost" id="home">Back</button></div>'; },
+    bind: function () { exBind(); document.getElementById("home").onclick = function () { go("home"); }; }
+  };
+  // The Friday page (#j=<gk>&a=1): the card and the explorer, and nothing
+  // a runner uses — no Start a game, no table, no settle buttons.
+  VIEWS.friday = {
     html: function () {
-      var s = view.s, back = '<div class="stack" style="margin-top:16px"><button class="btn ghost" id="home">Back</button></div>';
-      if (s === undefined) return '<h1>Standings</h1><p class="muted">Loading…</p>' + back;
-      if (s === "off") return '<h1>Standings</h1><div class="status warn">No connection. Try again when you have signal.</div>' + back;
-      var season = s && typeof s === "object" ? standTable("Season " + String(s.season || ""), s.rows) : "", all = s && typeof s === "object" ? standTable("All time", s.all) : "";
-      if (!season && !all) return '<h1>Standings</h1><p class="muted">No standings yet.</p>' + back;
-      return '<h1>Standings</h1><p class="muted small">' + (Number.isFinite(+s.up) && +s.up > 0 ? "Updated " + fmtDay(+s.up) + ", " + fmtTime(+s.up) + ". " : "") + "Only nights Kittu has approved count.</p>" + season + all + back;
+      if (!GK) return '<h1>Friday</h1><div class="card" id="noGroup"><div style="font-weight:650">This phone isn\'t connected to the group.</div><div class="small muted" style="margin-top:4px">Open the Friday link from the WhatsApp group again.</div></div>';
+      var card = !club.loaded ? '<div class="card" id="rsvpCard"><p class="muted">Loading the Friday card…</p></div>'
+        : rsvpOpen() ? rsvpCardHTML(true)
+        : '<div class="card" id="rsvpCard"><div style="font-weight:650">No Friday card is open right now.</div><div class="small muted quip" id="rsvpQuip" style="margin-top:4px;font-style:italic">' + esc(quip(RSVP_LINES, isoDay(now()))) + "</div></div>";
+      return '<h1>Friday</h1>' + card + exHTML();
     },
-    bind: function () { document.getElementById("home").onclick = function () { go("home"); }; }
+    bind: function () {
+      ["rsvpGo", "rsvpChange"].forEach(function (idA) { var b = document.getElementById(idA); if (b) b.onclick = function () { var y = rsvpOpen(); if (y) rsvpAsk(y); }; });
+      exBind();
+    }
   };
 
   // ----- this game moved to another phone (read-only) -----
@@ -2316,19 +2592,32 @@ if (typeof module !== "undefined") module.exports = PB;
 
   function joinGroup(code, ask) {
     clearHash();
-    if (!PB.cloud.validGk(code)) { toast("That group link is damaged. Open the pinned link again."); return go("home"); }
+    if (!PB.cloud.validGk(code)) {
+      toast("That group link is damaged. Open the pinned link again.");
+      // 4.4 review: a damaged Friday link still never lands on the runner home.
+      return ask ? openFriday() : go("home");
+    }
+    var was = GK;
     GK = code; save(GKEY, GK); live.at = 0; live.list = [];
-    // B9: the RSVP share link (#j=<gk>&a=1) opens straight into the answer sheet.
-    club.ask = !!ask;
     loadRoster(); clubOpen(); cloudKick(0);
-    go("home"); toast("Connected to the group");
-    askNow();
+    if (was !== GK) toast("Connected to the group");
+    // B9/4.4: the RSVP share link (#j=<gk>&a=1) opens the Friday page, and
+    // the answer sheet over it while this phone hasn't answered the card.
+    if (ask) {
+      // The key leaves the address bar; "#friday" keeps a reload on this page.
+      try { history.replaceState(null, "", location.pathname + location.search + "#friday"); } catch (e) {}
+      club.ask = true; go("friday", { ex: newEx() }); loadStand(); askNow(); return;
+    }
+    club.ask = false;
+    go("home");
   }
   function askNow() {
-    if (!club.ask || !club.loaded || view.name !== "home") return;
+    if (!club.ask || !club.loaded || view.name !== "friday") return;
     club.ask = false;
     var x = rsvpOpen();
-    if (x) rsvpAsk(x); else toast("No Friday card is open right now.");
+    if (!x) return;
+    var me = load(ME, ""), a = me && rsvpKey(me) ? rsvpAnswers(x.c).filter(function (r) { return r.pk === rsvpKey(me); })[0] : null;
+    if (!a) rsvpAsk(x);
   }
   async function route(kind, code, ask) {
     if (kind === "j") return joinGroup(code, ask);
@@ -2348,7 +2637,12 @@ if (typeof module !== "undefined") module.exports = PB;
   // the built-in REGULARS are the offline seed).
   function start() {
     var m = (location.hash || "").match(/^#([hrjwsv])=([A-Za-z0-9_.-]+)(&a=1)?/);
-    if (m) route(m[1], m[2], !!m[3]); else render();
+    if (m) route(m[1], m[2], !!m[3]);
+    // 4.4 review: #friday never falls back to the runner home, even when
+    // this phone lost its group (Safari clears a site's storage after a
+    // week unvisited): the Friday page then says how to get back.
+    else if (location.hash === "#friday") openFriday();
+    else render();
   }
   window.addEventListener("hashchange", start);
   window.addEventListener("storage", function (e) { if (e.key === KEY || e.key === null) resync(); });

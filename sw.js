@@ -1,7 +1,7 @@
 // Poker Bank table — offline cache. The page is one file; cache it on first
 // load and serve it from cache when there is no signal at the table.
 // Bump VERSION whenever index.html changes so phones pick up the new page.
-var VERSION = "pbt-v43-20261119";
+var VERSION = "pbt-v44r-20261120";
 // 4.3 (A13): network first, but a weak signal at the table waits at most
 // ~3 s for it; then the cached page opens (and the network copy, if it
 // arrives later, refreshes the cache for next time).
