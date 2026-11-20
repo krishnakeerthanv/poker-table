@@ -58,6 +58,8 @@ p{margin:6px 0 12px}
 .depth i{height:6px;width:18px;border-radius:2px;background:var(--depth)}
 .seatBtns{display:grid;grid-template-columns:1.3fr 1fr 1fr 48px;gap:8px}
 .seatBtns .btn{min-height:48px;padding:8px 6px;font-size:15px}
+/* 4.5 UI: "Cash out" stayed on one line only above ~380px; narrower phones (360) wrapped it to two. */
+@media (max-width:380px){.seatBtns .btn{font-size:14px;padding:8px 4px;white-space:nowrap}}
 .more{font-size:20px;letter-spacing:.05em}
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(12,13,15,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
 .dock .row .btn{min-height:52px}
@@ -67,6 +69,10 @@ p{margin:6px 0 12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px solid var(--edge);border-radius:999px;padding:10px 14px;min-height:44px;background:transparent;cursor:pointer;font-size:15px}
 .chip.on{background:var(--accentWash);border-color:var(--gold);color:var(--gold)}
+/* 4.5: group switcher chip, watchers line */
+.grpBar{display:flex;justify-content:flex-end;margin:0 0 10px}
+.grpChip{min-height:36px;padding:6px 14px;font-size:14px;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#watching{margin:6px 0 0}
 .field{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:13px;font-size:16px;outline:none}
 .field:focus{border-color:var(--accentEdge)}
 .field.figin{font-family:var(--mono);font-weight:600;text-align:right}
@@ -1234,9 +1240,14 @@ if (typeof module !== "undefined") module.exports = PB;
 (function () {
   "use strict";
   var KEY = "pbt.game.v1", NAMES = "pbt.names.v1", RUNNER = "pbt.runner.v1", COUNT = "pbt.count.v1", GKEY = "pbt.gk.v1", ME = "pbt.me.v1", CFG = "pbt.cfg.v1";
+  // 4.5: GKS = the groups this phone knows [{gk, name}]; RUN = the group keys it runs
+  // tables for (only a #t= table link adds one); VIEWER = the watch page's name.
+  var GKS = "pbt.gks.v1", RUN = "pbt.run.v1", VIEWER = "pbt.viewer.v1";
   // Poker Bank refuses a night with more than 20 players (ResultLink.maxSeats)
   // or a stack over 1,00,00,000 chips (Limits.maxChips).
   var MAXSEATS = 20, MAXCHIPS = 10000000;
+  // 4.5 (Kittu): a poker table seats 9. Active = not cashed out and not busted.
+  var TABLEMAX = 9, FULLMSG = "A table seats 9. Someone has to cash out or bust first.";
   var PAL = ["#6CB8F0","#C8B48A","#3D6FC4","#8B5CC6","#E2B33C","#E8772E","#27A9B4","#E060A8","#D0ADFF","#6461E0","#B94BC4","#8894AE"];
   var app = document.getElementById("app"), dock = document.getElementById("dock"),
       dockIn = document.getElementById("dockIn"), layer = document.getElementById("layer"), whoEl = document.getElementById("who"),
@@ -1268,7 +1279,7 @@ if (typeof module !== "undefined") module.exports = PB;
       if (hit) { hit.n = r.n; if (r.i) hit.i = r.i; if (r.col != null) hit.col = r.col; }
       else names.push({ n: r.n, i: r.i || null, col: r.col != null ? r.col : null });
     });
-    save(NAMES, names);
+    save(typeof GKS === "string" ? namesKey(GK) : NAMES, names);
   }
   // The group's regulars, built in so every phone can tap to add them
   // (13-Nov-2026): the offline seed. The group's roster (Kittu's app) is
@@ -1281,10 +1292,45 @@ if (typeof module !== "undefined") module.exports = PB;
   // copy of the game to the group a moment after every change. The phone
   // stays the source of truth: with no key or no signal, nothing changes.
   var GK = load(GKEY, null); if (!PB.cloud.validGk(GK)) GK = null;
+  // 4.5: several groups. pbt.gk.v1 stays the active key (older pages read it).
+  function groupList() {
+    var l = load(GKS, []), seen = {};
+    return (Array.isArray(l) ? l : []).filter(function (x) { if (!x || !PB.cloud.validGk(x.gk) || seen[x.gk]) return false; seen[x.gk] = 1; return true; })
+      .map(function (x) { return { gk: x.gk, name: typeof x.name === "string" ? x.name.trim().slice(0, 40) : "" }; });
+  }
+  function groupName(gk) {
+    var l = groupList(), k = l.findIndex(function (x) { return x.gk === gk; });
+    return k < 0 ? "Group" : l[k].name || "Group " + (k + 1);
+  }
+  function addGroup(gk) { var l = groupList(); if (PB.cloud.validGk(gk) && !l.some(function (x) { return x.gk === gk; })) { l.push({ gk: gk, name: "" }); save(GKS, l); } }
+  function setGroupName(gk, name) {
+    var l = groupList(), x = l.find(function (y) { return y.gk === gk; });
+    name = typeof name === "string" ? name.trim().slice(0, 40) : "";
+    if (x && name && x.name !== name) { x.name = name; save(GKS, l); return true; }
+    return false;
+  }
+  function runList() { var l = load(RUN, []); return Array.isArray(l) ? l.filter(PB.cloud.validGk) : []; }
+  // Only a phone that opened the group's table link (#t=) gets the runner home.
+  function isRunner(gk) { return !!gk && runList().indexOf(gk) >= 0; }
+  function addRunner(gk) { var l = runList(); if (PB.cloud.validGk(gk) && l.indexOf(gk) < 0) { l.push(gk); save(RUN, l); } }
+  if (GK) addGroup(GK);
+  // 4.5 audit: each group keeps its own names (ids are per group). The first
+  // group on this phone keeps the old pbt.names.v1 list (and the regulars).
+  function namesKey(gk) { var l = groupList(); return !gk || !l.length || l[0].gk === gk ? NAMES : NAMES + "." + gk; }
+  function loadNames() { var l = load(namesKey(GK), []); names = Array.isArray(l) ? l.filter(function (r) { return r && okName(r.n); }) : []; }
+  loadNames();
+  // 4.5 audit: a 4.4 game already in the cloud belongs to the group it was
+  // started in. Stamp it now, before a #j=/#t= link can change the active group.
+  if (G && G.cid && GK && G.mode !== "p" && !PB.cloud.validGk(G.gk)) { G.gk = GK; save(KEY, G); }
+  // Running the table (Start a game) needs the table link when a group is set.
+  function canRun() { return !GK || isRunner(GK); }
+  // The group a game on this phone belongs to (G.gk, set when it first
+  // reaches the cloud): it keeps saving there when another group is active.
+  function gameGk() { return G && PB.cloud.validGk(G.gk) ? G.gk : GK; }
   var sync = { st: "", timer: null, busy: false, again: false, wait: 0 };
   var live = { at: 0, busy: false, list: [] };
   var watchSub = null;
-  function cloudOn() { return !!(GK && G && G.mode !== "p" && !G.lost); }
+  function cloudOn() { return !!(gameGk() && G && G.mode !== "p" && !G.lost); }
   function paintSync() {
     if (!syncEl) return;
     var show = cloudOn() && ["table", "count", "result"].indexOf(view.name) >= 0 && sync.st;
@@ -1302,7 +1348,8 @@ if (typeof module !== "undefined") module.exports = PB;
     sync.timer = null;
     if (!cloudOn()) return paintSync();
     if (sync.busy) { sync.again = true; return; }
-    var g = G, gk = GK;
+    var g = G, gk = gameGk();
+    if (!PB.cloud.validGk(g.gk)) { g.gk = gk; save(KEY, G); }
     if (!g.cid) { g.cid = PB.cloud.rid(20); g.ce = 0; save(KEY, G); }
     if (!PB.cloud.validId(g.wt)) { g.wt = PB.cloud.rid(20); if (G === g) save(KEY, G); }
     sync.busy = true; sync.again = false;
@@ -1380,18 +1427,23 @@ if (typeof module !== "undefined") module.exports = PB;
   }
   async function checkOwner() {
     if (!cloudOn() || !G.cid || !G.cs || sync.busy) return;
-    var g = G, m = await PB.cloud.get("g/" + GK + "/livemeta/" + g.cid);
+    var g = G, m = await PB.cloud.get("g/" + gameGk() + "/livemeta/" + g.cid);
     if (m.ok && G === g && !g.lost && isMovedOn(m.data, g)) markLost(g, m.data);
   }
-  function cloudFlush() { if (cloudOn() && G.cid && (sync.timer || sync.st !== "live")) PB.cloud.flush(GK, G); }
+  function cloudFlush() { if (cloudOn() && G.cid && (sync.timer || sync.st !== "live")) PB.cloud.flush(gameGk(), G); }
   // A game discarded on this phone stops showing as running in the group.
   function retire(g) {
-    if (GK && g && g.cid && !g.lost && g.mode !== "p" && g.phase !== "done") PB.cloud.saveGame(GK, g, { meta: { phase: "done" } });
+    var gk = g && PB.cloud.validGk(g.gk) ? g.gk : GK;
+    if (gk && g && g.cid && !g.lost && g.mode !== "p" && g.phase !== "done") PB.cloud.saveGame(gk, g, { meta: { phase: "done" } });
   }
   function loadRoster() {
     if (!GK) return;
-    PB.cloud.get("g/" + GK + "/roster").then(function (r) {
+    var rgk = GK;
+    PB.cloud.get("g/" + rgk + "/roster").then(function (r) {
       if (!r.ok || !r.data || typeof r.data !== "object") return;
+      // 4.5: the group's display name (optional) for the group switcher.
+      if (typeof r.data.name === "string" && setGroupName(rgk, r.data.name) && ["home", "friday"].indexOf(view.name) >= 0) render();
+      if (rgk !== GK) return; // switched group meanwhile: its names aren't this group's
       var clean = cleanRoster(arr(r.data.list));
       if (clean.length) { remember(clean); if (view.name === "setup") render(); }
       // B6: the app's New game defaults (buy-in in ₹, chips per ₹).
@@ -1462,12 +1514,25 @@ if (typeof module !== "undefined") module.exports = PB;
   }
   // 4.3: the watch link carries the game's watch token, never the group key.
   function watchUrl() { return PB.HOST + "#v=" + G.wt; }
+  // 4.5 (Kittu): "Game's on — N at the table. Watch it live: <#v= link>".
+  // N = the active seats; never a money figure.
+  function tellText() { return "Game's on — " + openSeats().length + " at the table. Watch it live: " + watchUrl(); }
   function tellGroup() {
-    if (!GK || !G || !G.cid) return;
+    if (!gameGk() || !G || !G.cid) return;
     if (!PB.cloud.validId(G.wt)) { G.wt = PB.cloud.rid(20); save(KEY, G); }
-    // share() reaches navigator.share before any await (iOS needs that).
-    share("Poker's on · " + G.seats.length + " players · table run by " + G.by + "\nWatch live ↓", watchUrl());
+    // navigator.share before any await (iOS needs that); else WhatsApp.
+    shareWa(tellText());
     G.told = 1; persist(); render();
+  }
+  function shareWa(text) {
+    var wa = "https://wa.me/?text=" + encodeURIComponent(text);
+    function fallback() {
+      var win = null; try { win = window.open(wa, "_blank", "noopener"); } catch (e) {}
+      if (win) return;
+      sheet('<h3>Tell the group</h3><textarea class="field" style="min-height:120px">' + esc(text) + '</textarea><div class="stack" style="margin-top:12px"><a class="btn solid" id="waGo" href="' + esc(wa) + '" target="_blank" rel="noopener">Open WhatsApp</a><button class="btn ghost" id="cpClose">Close</button></div>', function (el) { el.querySelector("#cpClose").onclick = closeSheet; });
+    }
+    if (navigator.share) { try { navigator.share({ text: text }).catch(function (e) { if (!(e && e.name === "AbortError")) fallback(); }); return; } catch (e) {} }
+    fallback();
   }
   function offerTell() {
     sheet('<h3>Game on</h3><p class="muted small">Let the group watch the buy-ins live. The message has a watch link and no money figures.</p><div class="stack" style="margin-top:12px"><button class="btn solid" id="tell">Tell the group</button><button class="btn ghost" id="no">Not now</button></div>', function (el) {
@@ -1494,7 +1559,7 @@ if (typeof module !== "undefined") module.exports = PB;
         save(RUNNER, by); yes.disabled = true; yes.textContent = "Taking over…"; err.textContent = "";
         var r = await PB.cloud.takeOver(GK, item.id, by, function (raw, epoch) {
           var g = normalizeG(raw, true); if (!okGame(g)) return null;
-          g.cid = item.id; g.ce = epoch; g.by = by; g.cs = now(); g.told = 1;
+          g.cid = item.id; g.ce = epoch; g.by = by; g.cs = now(); g.told = 1; g.gk = GK;
           return g;
         });
         if (r.ok) {
@@ -1514,7 +1579,113 @@ if (typeof module !== "undefined") module.exports = PB;
       };
     });
   }
-  function stopWatch() { if (watchSub) { watchSub.forEach(function (s) { s && s.close(); }); watchSub = null; } }
+  function stopWatch() { if (watchSub) { watchSub.forEach(function (s) { s && s.close(); }); watchSub = null; } presenceStop(); }
+  // ---------- 4.5 watchers ----------
+  // The watch page asks for a name once (pbt.viewer.v1), then keeps
+  // /watchv/<wt>/<pk> = { n, at: server time, u } fresh every 60 s while
+  // on screen. The watch page and the runner's table show who watched in
+  // the last 3 minutes. Names are anyone's: escaped wherever drawn.
+  var VIEWMS = 180000, PINGMS = 60000;
+  var pres = { wt: null, pk: null, timer: null, busy: false, dead: false };
+  var vw = { wt: null, sub: null, rows: null };
+  function viewerName() { var v = load(VIEWER, ""); return typeof v === "string" && v.trim() && v.trim().length <= 30 ? v.trim().replace(/\s+/g, " ") : ""; }
+  function presenceStart(wt) {
+    if (pres.wt === wt && pres.timer) return;
+    presenceStop(); pres.wt = wt; pres.pk = null; pres.dead = false;
+    pres.timer = setInterval(presencePing, PINGMS);
+    presencePing();
+  }
+  function presenceStop() { if (pres.timer) clearInterval(pres.timer); pres.timer = null; pres.wt = null; pres.pk = null; }
+  async function presencePing() {
+    var wt = pres.wt, n = viewerName();
+    if (!wt || !n || pres.busy || pres.dead || document.hidden) return;
+    pres.busy = true;
+    var base = rsvpKey(n) || "viewer", pk = pres.pk || base;
+    try {
+      for (var i = 0; i < 4; i++) {
+        var uid; try { uid = (await PB.cloud.token()).uid; } catch (e) { return; }
+        if (pres.wt !== wt) return;
+        var r = await PB.cloud.req("PUT", "watchv/" + wt + "/" + pk, { n: n, at: { ".sv": "timestamp" }, u: uid });
+        if (r.ok) { pres.pk = pk; return; }
+        if (!r.denied || pres.wt !== wt) return;
+        // Another phone answers to this name, or the game has gone: try a
+        // numbered key a few times, then stop pinging this game.
+        pk = base.slice(0, 38) + (i + 2);
+      }
+      pres.dead = true;
+    } finally { pres.busy = false; }
+  }
+  function viewersOpen(wt) {
+    if (vw.wt === wt && vw.sub) return;
+    viewersClose(); vw.wt = wt; vw.rows = null;
+    vw.sub = PB.cloud.stream("watchv/" + wt, function (kind, data) {
+      if (vw.wt !== wt) return;
+      if (kind === "data") vw.rows = data && typeof data === "object" ? data : null;
+      else if (kind === "denied") vw.rows = null;
+      else return;
+      paintViewers();
+    });
+  }
+  function viewersClose() { if (vw.sub) vw.sub.close(); vw.sub = null; vw.wt = null; vw.rows = null; }
+  function viewerNames() {
+    var out = [], seen = {}, t = now(), rows = vw.rows;
+    if (!rows || typeof rows !== "object") return out;
+    Object.keys(rows).forEach(function (pk) {
+      var r = rows[pk];
+      if (!r || typeof r.n !== "string" || !r.n.trim() || r.n.length > 30) return;
+      var at = Number.isFinite(+r.at) ? +r.at : 0, k = r.n.trim().toLowerCase();
+      if (t - at > VIEWMS || seen[k]) return;
+      seen[k] = 1; out.push({ n: r.n.trim(), at: at });
+    });
+    return out.sort(function (a, b) { return a.at - b.at; }).slice(0, 40).map(function (x) { return x.n; });
+  }
+  function watchingHTML() {
+    var l = viewerNames();
+    return '<p class="small muted" id="watching"' + (l.length ? "" : " hidden") + ">" + (l.length ? "Watching: " + l.map(esc).join(", ") : "") + "</p>";
+  }
+  function paintViewers() { var el = document.getElementById("watching"); if (el) el.outerHTML = watchingHTML(); }
+  // Which presence/viewer streams the current view needs (called on every render).
+  function viewersFor() {
+    var w = view.w;
+    if (view.name === "watch" && w && w.wt && viewerName() && !w.error && !w.bad) { viewersOpen(w.wt); presenceStart(w.wt); return; }
+    presenceStop();
+    if (view.name === "table" && G && !G.lost && cloudOn() && G.cid && PB.cloud.validId(G.wt)) viewersOpen(G.wt);
+    else viewersClose();
+  }
+  // "Not you? Change": the saved name next to a way to re-pick it. The old
+  // /watchv row goes (a viewer may delete its own), the name is forgotten,
+  // and the picker comes back; the next ping writes the new row.
+  function viewerMeHTML() {
+    var n = viewerName();
+    return n ? '<p class="small muted" id="vMe" style="margin:4px 0 0">You\'re watching as <b>' + esc(n) + '</b> · <button id="vChange" style="background:none;border:0;padding:0;color:var(--gold);font:inherit;text-decoration:underline;cursor:pointer">Not you? Change</button></p>' : "";
+  }
+  async function viewerChange() {
+    var wt = pres.wt, pk = pres.pk;
+    presenceStop();
+    save(VIEWER, "");
+    render();
+    // A ping already on its way lands first, then the row goes.
+    for (var i = 0; i < 20 && pres.busy; i++) await new Promise(function (r) { setTimeout(r, 100); });
+    if (wt && pk) { try { await PB.cloud.req("DELETE", "watchv/" + wt + "/" + pk); } catch (e) {} }
+  }
+  function viewerPick() {
+    var list = names.map(function (r) { return r.n; }).filter(function (n) { return okName(n) && n.length <= 30; }).sort(function (a, b) { return a.localeCompare(b); });
+    return '<h1>Who\'s watching?</h1><p class="muted small">Pick your name once. Everyone watching sees who else is.</p>' +
+      '<div class="chips" id="vNames">' + list.map(function (n) { return '<button class="chip" data-vn="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div>" +
+      '<label class="lab">Someone else</label><div class="row"><input class="field" id="vOther" maxlength="30" placeholder="Your name"><button class="btn" id="vGo" style="flex:0 0 90px">Next</button></div><p class="bad small" id="vErr"></p>';
+  }
+  function viewerPickBind() {
+    function pick(n) {
+      n = String(n || "").trim().replace(/\s+/g, " ");
+      if (!n) { document.getElementById("vErr").textContent = "Type your name."; return; }
+      if (n.length > 30) { document.getElementById("vErr").textContent = "Keep it under 30 letters."; return; }
+      save(VIEWER, n); render();
+    }
+    app.querySelectorAll("[data-vn]").forEach(function (b) { b.onclick = function () { pick(b.dataset.vn); }; });
+    var o = document.getElementById("vOther");
+    document.getElementById("vGo").onclick = function () { pick(o.value); };
+    o.onkeydown = function (e) { if (e.key === "Enter") pick(o.value); };
+  }
   function openWatch(code) {
     stopWatch();
     var m = String(code).match(/^([A-Za-z0-9]{22})\.([A-Za-z0-9]{20})$/);
@@ -1806,14 +1977,17 @@ if (typeof module !== "undefined") module.exports = PB;
     setup = null;
     var x = rsvpCards().filter(function (c) { return c.day === isoDay(now()); })[0];
     if (!x) return;
-    var picked = [];
+    var ins = [];
     rsvpAnswers(x.c).forEach(function (a) {
       var n = a.n.trim().replace(/\s+/g, " ");
-      if (a.s !== "in" || picked.length >= MAXSEATS || picked.some(function (p) { return p.n.toLowerCase() === n.toLowerCase(); })) return;
+      if (a.s !== "in" || ins.length >= MAXSEATS || ins.some(function (p) { return p.n.toLowerCase() === n.toLowerCase(); })) return;
       var r = names.find(function (q) { return q.n.toLowerCase() === n.toLowerCase(); });
-      picked.push(r ? { n: r.n, i: r.i, col: r.col } : { n: n });
+      ins.push(r ? { n: r.n, i: r.i, col: r.col } : { n: n });
     });
-    if (picked.length) { var df = defaults(); setup = { ratio: df.ratio, unit: df.unit, by: load(RUNNER, ""), picked: picked, fromRsvp: picked.length }; }
+    // 4.5: a table seats 9: the first 9 to answer are seated, the rest stay
+    // one tap away so the runner chooses.
+    var picked = ins.slice(0, TABLEMAX);
+    if (picked.length) { var df = defaults(); setup = { ratio: df.ratio, unit: df.unit, by: load(RUNNER, ""), picked: picked, fromRsvp: picked.length, rsvpIn: ins }; }
   }
   // B6: New game starts from the app's defaults (roster.cfg), else ₹2,000 at 2 chips a rupee.
   function okBuyin(v) { return Number.isInteger(v) && v >= 100 && v <= 1000000 && v % 100 === 0; }
@@ -1910,6 +2084,10 @@ if (typeof module !== "undefined") module.exports = PB;
   // ---------- views ----------
   function render() {
     if (G && G.lost && ["table", "count", "result"].indexOf(view.name) >= 0) view = { name: "lost" };
+    if ((!G && ["table", "count", "result"].indexOf(view.name) >= 0) || (view.name === "lost" && !(G && G.lost))) view = { name: "home", scrollTop: view.scrollTop };
+    // 4.5 (Kittu): a phone that knows the group but never opened its table
+    // link (#t=) gets the Friday page, never the runner home.
+    if ((view.name === "home" || view.name === "setup") && GK && !isRunner(GK)) { view = { name: "friday", ex: newEx(), scrollTop: view.scrollTop }; clubOpen(); loadStand(); }
     closeDockIfNeeded();
     whoEl.textContent = view.name === "watch" ? "Watching" : view.name === "friday" ? "" : G && G.by ? "Run by " + G.by : "";
     // 4.4.3: the Friday page has its own type and one compact top bar.
@@ -1920,6 +2098,7 @@ if (typeof module !== "undefined") module.exports = PB;
     app.innerHTML = v.html();
     if (v.bind) v.bind();
     renderDock();
+    viewersFor();
     window.scrollTo && view.scrollTop && window.scrollTo(0, 0);
     view.scrollTop = false;
   }
@@ -1962,7 +2141,7 @@ if (typeof module !== "undefined") module.exports = PB;
           '<div class="row" style="margin-top:10px"><button class="btn ghost" data-watch="' + esc(it.id) + '">Watch</button><button class="btn" data-cont="' + esc(it.id) + '">Continue on this phone</button></div></div>';
       }).join("") : "";
       // B3: Friday card → Start a game → Live → Settle up → Standings → More.
-      return rsvpCardHTML() + '<h1>Run tonight\'s game</h1>' + cont +
+      return groupChip() + rsvpCardHTML() + '<h1>Run tonight\'s game</h1>' + cont +
         '<div class="stack" style="margin-top:12px"><button class="btn ' + (G ? "" : "solid") + '" id="new">Start a game</button></div>' +
         lives + settleBoard() +
         (GK ? '<div class="stack" style="margin-top:10px"><button class="btn ghost" id="stand">Standings</button></div>' : "") +
@@ -1974,7 +2153,7 @@ if (typeof module !== "undefined") module.exports = PB;
           : "For when Kittu isn't at the table. Everything stays on this phone — nothing is uploaded. At the end you send Kittu one link and he adds the night to Poker Bank.") + "</p>" +
         '<ol class="how muted small"><li>Seat everyone, tap <b>+</b> for each buy-in.</li><li>Cash people out with their chip count, or mark them busted.</li><li>At the end, count every stack. The page checks the chips add up and shows who pays whom.</li>' +
         (GK ? "<li>Tap <b>Send to Kittu</b>. It goes straight to his Poker Bank inbox. Nothing counts until he approves it.</li></ol>" +
-              '<p class="muted small">Leaving early? The next runner opens the group link and taps <b>Continue on this phone</b>. No signal? Tap <b>Leaving early?</b> on the table and share the hand-over link.</p>'
+              '<p class="muted small">Leaving early? The next runner opens the table link and taps <b>Continue on this phone</b>. No signal? Tap <b>Leaving early?</b> on the table and share the hand-over link.</p>'
             : "<li>Tap <b>Send to Kittu</b> and post the link in the group. Nothing counts until he approves it.</li></ol>" +
               '<p class="muted small">Leaving early? Tap <b>Hand over</b> on the table and send the link to whoever takes over.</p>');
     },
@@ -1998,14 +2177,58 @@ if (typeof module !== "undefined") module.exports = PB;
       app.querySelectorAll("[data-paid]").forEach(function (b) { b.onclick = function () { settleAct(club.board[+b.dataset.paid], "claimed"); }; });
       app.querySelectorAll("[data-got]").forEach(function (b) { b.onclick = function () { settleAct(club.board[+b.dataset.got], "paid"); }; });
       var rg = document.getElementById("rsvpGo"); if (rg) rg.onclick = function () { var x = rsvpOpen(); if (x) rsvpAsk(x); };
+      bindGroupChip();
       if (GK) loadLive();
     }
   };
+  // 4.5: with more than one group on this phone, a small switcher chip.
+  function groupChip() {
+    var l = groupList();
+    if (!GK || l.length < 2) return "";
+    return '<div class="grpBar" id="grpBar"><button class="chip on grpChip" id="grpSw" aria-label="Switch group">' + esc(groupName(GK)) + " ▾</button></div>";
+  }
+  function bindGroupChip() { var b = document.getElementById("grpSw"); if (b) b.onclick = groupSheet; }
+  function groupSheet() {
+    var l = groupList();
+    sheet('<h3>Groups on this phone</h3><div class="stack" id="grpList">' + l.map(function (x, k) {
+      return '<button class="btn ' + (x.gk === GK ? "solid" : "ghost") + '" data-g="' + k + '">' + esc(x.name || "Group " + (k + 1)) + (x.gk === GK ? " ✓" : "") + "</button>";
+    }).join("") + '</div><p class="small muted">Each group has its own players, Friday card and standings.</p>', function (el) {
+      el.querySelectorAll("[data-g]").forEach(function (b) { b.onclick = function () { var x = groupList()[+b.dataset.g]; closeSheet(); if (x) switchGroup(x.gk); }; });
+    });
+  }
+  function switchGroup(gk) {
+    if (!PB.cloud.validGk(gk)) return;
+    if (gk !== GK) {
+      GK = gk; save(GKEY, GK); live.at = 0; live.list = []; loadNames();
+      loadRoster(); clubOpen(); toast("Switched to " + groupName(GK));
+    }
+    // The runner home if this phone runs this group's table, else its Friday page.
+    if (view.name === "friday" && !isRunner(GK)) { view.ex = newEx(); loadStand(); render(); }
+    else go("home");
+  }
+  // A group's name is learnt from its roster; fetch the unnamed ones once.
+  function nameGroups() {
+    var l = groupList(); if (l.length < 2) return;
+    l.forEach(function (x) {
+      if (x.name) return;
+      PB.cloud.get("g/" + x.gk + "/roster/name").then(function (r) {
+        if (r.ok && typeof r.data === "string" && setGroupName(x.gk, r.data) && ["home", "friday"].indexOf(view.name) >= 0) render();
+      });
+    });
+  }
+  // What is on this phone, on the Friday page: its own game only.
+  function onPhoneCard() {
+    if (!G) return "";
+    if (G.lost) return '<div class="card" id="onPhone"><div class="small muted">On this phone</div><div style="font-weight:650;margin:4px 0 10px">This game moved to ' + esc(G.lost.by) + "'s phone</div>" + '<button class="btn" id="cont">Open</button></div>';
+    return '<div class="card" id="onPhone"><div class="small muted">On this phone</div><div style="font-weight:650;margin:4px 0 10px">' +
+      (G.phase === "done" ? "Last game's result" : "Tonight's game · " + G.seats.length + " players") +
+      '</div><button class="btn solid" id="cont">' + (G.phase === "done" ? "Open the result" : "Back to the table") + "</button></div>";
+  }
 
   function pasteLink() {
     sheet('<h3>Open a link</h3><p class="muted small">Paste the whole link from WhatsApp.</p><textarea class="field" id="lk" style="min-height:110px" placeholder="https://…"></textarea><div class="stack" style="margin-top:12px"><button class="btn solid" id="ok">Open</button></div><p class="bad small" id="err"></p>', function (el) {
       el.querySelector("#ok").onclick = function () {
-        var t = el.querySelector("#lk").value.trim(), m = t.match(/#?([hrjwsv])=([A-Za-z0-9_.-]+)/);
+        var t = el.querySelector("#lk").value.trim(), m = t.match(/#?([hrjtwsv])=([A-Za-z0-9_.-]+)/);
         if (!m) { el.querySelector("#err").textContent = "That is not a Poker Table link."; return; }
         closeSheet(); route(m[1], m[2]);
       };
@@ -2028,10 +2251,14 @@ if (typeof module !== "undefined") module.exports = PB;
         '<label class="lab">Chips</label><div class="seg" id="ratio">' + ratios.map(function (r) { return '<button data-r="' + r + '" class="' + (setup.ratio === r ? "on" : "") + '">' + (r === 1 ? "₹1 = 1 chip" : "₹1 = " + r + " chips") + "</button>"; }).join("") + "</div>" +
         '<p class="small muted">Use what Kittu\'s app uses. A ' + PB.inr(setup.unit) + " buy-in is " + PB.grouped(setup.unit * setup.ratio) + " chips.</p>" +
         '<label class="lab">Players tonight (' + setup.picked.length + ')</label>' +
-        ((setup.fromRsvp | 0) > 0 ? '<p class="small muted" id="fromRsvp">' + esc(String(setup.fromRsvp | 0)) + " who said they're in are seated. Tap a name to take them off.</p>" : "") +
+        ((setup.fromRsvp | 0) > 0 ? '<p class="small muted" id="fromRsvp">' + ((setup.rsvpIn || []).length > TABLEMAX
+          ? esc(String(setup.rsvpIn.length)) + " said they're in. A table seats " + TABLEMAX + ": the first " + TABLEMAX + " to answer are seated. Tap names to swap."
+          : esc(String(setup.fromRsvp | 0)) + " who said they're in are seated. Tap a name to take them off.") + "</p>" : "") +
         (known.length ? '<div class="chips" id="known">' + known.map(function (r) { var on = setup.picked.some(function (p) { return p.n === r.n; }); return '<button class="chip' + (on ? " on" : "") + '" data-n="' + esc(r.n) + '">' + esc(r.n) + "</button>"; }).join("") + "</div>" : '<p class="small muted">No names on this phone yet — type them below. Next time they are remembered.</p>') +
         '<div class="row" style="margin-top:10px"><input class="field" id="newName" maxlength="24" placeholder="Type a new name"><button class="btn" id="addName" style="flex:0 0 90px">Add</button></div>' +
         (setup.picked.filter(function (p) { return !names.some(function (r) { return r.n === p.n; }); }).length ? '<div class="chips" style="margin-top:8px">' + setup.picked.filter(function (p) { return !names.some(function (r) { return r.n === p.n; }); }).map(function (p) { return '<button class="chip on" data-n="' + esc(p.n) + '">' + esc(p.n) + " ✕</button>"; }).join("") + "</div>" : "") +
+        // 4.5: RSVP "in" names this phone doesn't know and that aren't seated yet.
+        ((setup.rsvpIn || []).filter(function (p) { return !names.some(function (r) { return r.n === p.n; }) && !setup.picked.some(function (q) { return q.n === p.n; }); }).map(function (p) { return '<button class="chip" data-n="' + esc(p.n) + '">' + esc(p.n) + "</button>"; }).join("").replace(/^([\s\S]+)$/, '<div class="chips" id="rsvpMore" style="margin-top:8px">$1</div>')) +
         '<p class="small muted">Everyone starts with one ' + PB.inr(setup.unit) + ' buy-in.</p><div class="stack" style="margin-top:16px"><button class="btn solid" id="go"' + (setup.picked.length ? "" : " disabled") + '>Seat ' + setup.picked.length + ' and start</button><button class="btn ghost" id="back">Back</button></div><p class="bad small" id="err"></p>';
     },
     bind: function () {
@@ -2042,7 +2269,7 @@ if (typeof module !== "undefined") module.exports = PB;
         b.onclick = function () {
           var n = b.dataset.n, k = setup.picked.findIndex(function (p) { return p.n === n; });
           if (k >= 0) setup.picked.splice(k, 1);
-          else if (setup.picked.length >= MAXSEATS) { document.getElementById("err").textContent = "Poker Bank takes at most " + MAXSEATS + " players a night."; return; }
+          else if (setup.picked.length >= TABLEMAX) { document.getElementById("err").textContent = "A table seats " + TABLEMAX + ". Take someone off first."; return; }
           else { var r = names.find(function (x) { return x.n === n; }); setup.picked.push({ n: n, i: r && r.i, col: r && r.col }); }
           render();
         };
@@ -2052,7 +2279,7 @@ if (typeof module !== "undefined") module.exports = PB;
         var n = nn.value.trim().replace(/\s+/g, " ");
         if (!n) return;
         if (setup.picked.some(function (p) { return p.n.toLowerCase() === n.toLowerCase(); })) { document.getElementById("err").textContent = n + " is already seated."; return; }
-        if (setup.picked.length >= MAXSEATS) { document.getElementById("err").textContent = "Poker Bank takes at most " + MAXSEATS + " players a night."; return; }
+        if (setup.picked.length >= TABLEMAX) { document.getElementById("err").textContent = "A table seats " + TABLEMAX + ". Take someone off first."; return; }
         var r = names.find(function (x) { return x.n.toLowerCase() === n.toLowerCase(); });
         setup.picked.push(r ? { n: r.n, i: r.i, col: r.col } : { n: n });
         render();
@@ -2062,12 +2289,13 @@ if (typeof module !== "undefined") module.exports = PB;
       document.getElementById("back").onclick = function () { setup = null; go("home"); };
       document.getElementById("go").onclick = function () {
         if (!setup.by.trim()) { document.getElementById("err").textContent = "Type your name first — Kittu sees who ran the table."; by.focus(); return; }
+        if (setup.picked.length > TABLEMAX) { document.getElementById("err").textContent = "A table seats " + TABLEMAX + ". Take someone off first."; return; }
         save(RUNNER, setup.by.trim());
         var t = now();
         G = { v: 1, phase: "play", d: t, ratio: setup.ratio, unit: setup.unit, by: setup.by.trim(), h: 0,
               seats: setup.picked.map(function (p, k) { return { n: p.n, i: p.i || null, col: p.col != null ? p.col : null, b: [setup.unit], c: null, at: null, e: 0 }; }) };
         // The game's cloud id is known at once, so the watch link can be shared before the first save lands.
-        if (GK) { G.cid = PB.cloud.rid(20); G.ce = 0; G.wt = PB.cloud.rid(20); }
+        if (GK) { G.cid = PB.cloud.rid(20); G.ce = 0; G.wt = PB.cloud.rid(20); G.gk = GK; }
         remember(setup.picked);
         setup = null; freshGame(); persist(); go("table");
         if (GK) offerTell();
@@ -2097,8 +2325,9 @@ if (typeof module !== "undefined") module.exports = PB;
       }).join("");
       return '<div class="rack"><div><span>Cash in</span><b>' + PB.inr(cashIn()) + '</b></div><div><span>Chips out</span><b>' + PB.grouped(onTable()) + '</b></div><div><span>Playing</span><b>' + openSeats().length + "/" + G.seats.length + "</b></div></div>" +
         '<p class="small muted" style="margin:6px 0 0">Started ' + fmtTime(G.d) + (G.h ? " · taken over from a hand-over link" : "") + " · " + (G.ratio === 1 ? "₹1 = 1 chip" : "₹1 = " + G.ratio + " chips") + "</p>" +
+        (gameGk() && G.cid ? watchingHTML() : "") +
         seats +
-        '<div class="stack" style="margin-top:14px">' + (GK && G.cid && !G.told ? '<button class="btn" id="tellBtn">Tell the group</button>' : "") + '<button class="btn ghost" id="addP">+ Add a player</button><button class="btn ghost" id="home" style="min-height:44px;font-size:14px">Menu</button></div>';
+        '<div class="stack" style="margin-top:14px">' + (gameGk() && G.cid && !G.told ? '<button class="btn" id="tellBtn">Tell the group</button>' : "") + '<button class="btn ghost" id="addP">+ Add a player</button><button class="btn ghost" id="home" style="min-height:44px;font-size:14px">Menu</button></div>';
     },
     bind: function () {
       app.querySelectorAll("[data-act]").forEach(function (b) {
@@ -2121,6 +2350,7 @@ if (typeof module !== "undefined") module.exports = PB;
       // her would put them on the table twice.
       var ho = handOverOf(s);
       if (ho) return toast(s.n + " handed the seat to " + ho.t + ". Those chips are " + ho.t + "'s now.");
+      if (openSeats().length >= TABLEMAX) return tableFull();
       return commit(s.n + " is back in", function () { s.c = null; s.at = null; s.e = 0; });
     }
     if (act === "cash") return cashOut(k);
@@ -2190,7 +2420,12 @@ if (typeof module !== "undefined") module.exports = PB;
     });
   }
 
+  function tableFull() {
+    sheet('<h3>The table is full</h3><p class="muted" id="fullMsg">' + esc(FULLMSG) + '</p><div class="stack"><button class="btn ghost" id="no">OK</button></div>', function (el) { el.querySelector("#no").onclick = closeSheet; });
+  }
   function addPlayer() {
+    // 4.5: no 10th active seat. A game handed over with more keeps them all.
+    if (openSeats().length >= TABLEMAX) return tableFull();
     var seated = G.seats.map(function (s) { return s.n.toLowerCase(); });
     var free = names.filter(function (r) { return seated.indexOf(r.n.toLowerCase()) < 0; }).sort(function (a, b) { return a.n.localeCompare(b.n); });
     sheet('<h3>Add a player</h3><p class="muted small">Starts with one ' + PB.inr(G.unit) + ' buy-in.</p>' +
@@ -2200,6 +2435,7 @@ if (typeof module !== "undefined") module.exports = PB;
         n = n.trim().replace(/\s+/g, " ");
         if (!n) return;
         if (G.seats.some(function (s) { return s.n.toLowerCase() === n.toLowerCase(); })) { el.querySelector("#err").textContent = n + " is already seated."; return; }
+        if (openSeats().length >= TABLEMAX) { el.querySelector("#err").textContent = FULLMSG; return; }
         if (G.seats.length >= MAXSEATS) { el.querySelector("#err").textContent = "Poker Bank takes at most " + MAXSEATS + " players a night."; return; }
         var r = names.find(function (x) { return x.n.toLowerCase() === n.toLowerCase(); });
         if (!r) remember([{ n: n }]);
@@ -2339,12 +2575,12 @@ if (typeof module !== "undefined") module.exports = PB;
   // The night's fingerprint: a result sent to the inbox counts as sent only
   // while the figures are unchanged ("Back to the table" makes a new one).
   function resultKey() { return PB.crc32(new TextEncoder().encode(JSON.stringify(resultPayload().payload))); }
-  function sentCode() { return GK && G.sent && G.sent.k === resultKey() && PB.cloud.validCode(G.sent.s) ? G.sent.s : null; }
+  function sentCode() { return gameGk() && G.sent && G.sent.k === resultKey() && PB.cloud.validCode(G.sent.s) ? G.sent.s : null; }
   function sendBlock() {
     var sent = sentCode();
     // B7: the link is only offered when the cloud send failed.
     if (sent) return '<div class="status ok">Sent ✓ — it\'s in Kittu\'s Poker Bank inbox</div>';
-    if (GK && view.sendFail) return '<div class="status warn">Couldn\'t reach the group\'s database. Send Kittu the link instead — it carries the whole night.</div><button class="btn solid" id="kittu">Share the link with Kittu</button>';
+    if (gameGk() && view.sendFail) return '<div class="status warn">Couldn\'t reach the group\'s database. Send Kittu the link instead — it carries the whole night.</div><button class="btn solid" id="kittu">Share the link with Kittu</button>';
     return '<button class="btn solid" id="kittu">Send to Kittu for approval</button>';
   }
   function kittuHead() { return "Poker · " + fmtDay(G.d) + (G.by ? " · table run by " + G.by : "") + "\nResult sent to Kittu for approval.\nKittu: tap to open it in Poker Bank ↓"; }
@@ -2378,8 +2614,8 @@ if (typeof module !== "undefined") module.exports = PB;
         resultHTML(night, { assumed: G.mode === "p" }) +
         '<div class="stack" style="margin-top:18px">' + sendBlock() +
         (G.mode === "p" ? "" : '<button class="btn ghost" id="reopen">Back to the table (fix something)</button>') +
-        '<button class="btn ghost" id="newg">Start a new game</button></div>' +
-        '<p class="small muted" style="margin-top:12px">' + (GK && !view.sendFail
+        '<button class="btn ghost" id="newg">' + (canRun() ? "Start a new game" : "Clear from this phone") + "</button></div>" +
+        '<p class="small muted" style="margin-top:12px">' + (gameGk() && !view.sendFail
           ? "Send to Kittu puts the night straight into his Poker Bank inbox. Nothing is posted in the group: Kittu shares the result himself after he approves it."
           : "The message has no numbers in it: Kittu shares the result with the group himself. The night goes into Poker Bank only after he approves it.") + "</p>";
     },
@@ -2409,7 +2645,7 @@ if (typeof module !== "undefined") module.exports = PB;
         // A code tried earlier for these same figures, whose answer never
         // came back, is reused: a retry can't make a second pending night.
         var prior = g.stry && g.stry.k === key ? g.stry.s : null;
-        var r = await PB.cloud.sendResult(GK, rec, prior, function (c) {
+        var r = await PB.cloud.sendResult(gameGk(), rec, prior, function (c) {
           if (c) g.stry = { s: c, k: key }; else delete g.stry;
           if (G === g) save(KEY, G);
         });
@@ -2421,7 +2657,7 @@ if (typeof module !== "undefined") module.exports = PB;
         v.sendFail = true; render();
       }
       var kb = document.getElementById("kittu");
-      if (kb) kb.onclick = function () { if (GK && !view.sendFail) sendCloud(kb); else shareLong(); };
+      if (kb) kb.onclick = function () { if (gameGk() && !view.sendFail) sendCloud(kb); else shareLong(); };
       var ro = document.getElementById("reopen");
       if (ro) ro.onclick = function () {
         confirmSheet("Back to the table?", "The final count is undone: the stacks counted at the end are reopened. Cash-outs from earlier stay.", "Back to the table", false, function () {
@@ -2447,8 +2683,10 @@ if (typeof module !== "undefined") module.exports = PB;
   // B1: the warning says whether the night already reached Kittu.
   function newGameAfterResult() {
     var msg = sentCode() ? "Tonight's result is cleared from this phone. It's already in Kittu's inbox ✓."
-      : GK ? "This night hasn't been sent to Kittu yet. Send it first: once cleared, it's gone from this phone."
+      : gameGk() ? "This night hasn't been sent to Kittu yet. Send it first: once cleared, it's gone from this phone."
       : "Tonight's result is cleared from this phone. Make sure Kittu has the link first.";
+    // 4.5 audit: without the table link this phone can't start a game: it only clears.
+    if (!canRun()) return confirmSheet("Clear this game?", msg, "Clear", true, function () { G = null; freshGame(); persist(); go("home"); });
     confirmSheet("Start a new game?", msg, "Clear and start new", true, function () { G = null; freshGame(); persist(); presetSetup(); go("setup"); });
   }
 
@@ -2523,13 +2761,13 @@ if (typeof module !== "undefined") module.exports = PB;
       R: names.filter(function (r) { return seated.indexOf(r.n.toLowerCase()) < 0 && r.i; }).map(function (r) { var o = { n: r.n, i: r.i }; if (r.col != null) o.col = r.col; return o; }),
       x: handovers().map(function (h) { var o = { f: h.f, t: h.t, c: h.c }; if (h.a) o.a = h.a; return o; }),
       // The cloud game it belongs to (4.1): the taker carries on that game.
-      ci: GK && G.cid && !G.lost ? G.cid : undefined, ce: GK && G.cid && !G.lost ? (G.ce | 0) : undefined };
+      ci: gameGk() && G.cid && !G.lost ? G.cid : undefined, ce: gameGk() && G.cid && !G.lost ? (G.ce | 0) : undefined };
   }
   // B1: with the group, nobody needs a link: the next runner opens the
   // group link on their own phone. The link is for when there's no signal.
   function leavingSheet() {
     var saved = sync.st === "live" && G.cs, hidden = PB.cloud.phaseOf(G) === "done";
-    sheet('<h3>Leaving early?</h3><p class="muted">Next runner: open the group link → <b>Continue on this phone</b>. They get the table as last saved, and this phone stops saving.</p>' +
+    sheet('<h3>Leaving early?</h3><p class="muted">Next runner: open the table link → <b>Continue on this phone</b>. They get the table as last saved, and this phone stops saving.</p>' +
       // With one seat left open the group no longer sees the table (4.3), so Continue isn't offered.
       (hidden ? '<div class="status warn">Only one seat is still open, so the group can\'t see this table any more. Share a hand-over link instead.</div>'
         : '<div class="status ' + (saved ? "ok" : "warn") + '">' + (saved ? "Saved to the group " + agoText(G.cs) + "." : "Not saved to the group yet. No signal? Use the hand-over link.") + "</div>") +
@@ -2592,6 +2830,7 @@ if (typeof module !== "undefined") module.exports = PB;
         G = { v: 1, phase: "play", d: p.d, ratio: p.r, unit: p.u, by: by, h: 1, x: cleanHands(p.x),
               seats: p.p.map(function (s) { return { n: s.n, i: typeof s.i === "string" && s.i ? s.i : null, col: Number.isInteger(s.col) ? s.col : null, b: s.b.slice(), c: s.c != null ? s.c : null, at: s.c != null ? t - 1 : null, e: s.c != null ? 1 : 0 }; }) };
         if (PB.cloud.validId(p.ci) && Number.isInteger(p.ce) && p.ce >= 0) { G.cid = p.ci; G.adopt = p.ce; G.told = 1; }
+        if (GK) G.gk = GK;
         if (old && old.cid !== G.cid) retire(old);
         freshGame(); persist(); clearHash(); go("table"); toast("You're running the table now.");
       };
@@ -2626,13 +2865,15 @@ if (typeof module !== "undefined") module.exports = PB;
       var w = view.w || {}, back = '<div class="stack" style="margin-top:16px"><button class="btn ghost" id="home">Go to the table page</button></div>';
       if (w.error) return '<h1>Can\'t open this game</h1><div class="status err">' + esc(w.error) + "</div>" + back;
       if (w.bad) return '<h1>Can\'t open this game</h1><div class="status err">This watch link doesn\'t work any more. Open the pinned group link, or ask for a fresh watch link.</div>' + back;
+      // 4.5: a #v= watcher picks a name once before seeing the table.
+      if (w.wt && !viewerName()) return viewerPick() + back;
       var meta = w.meta, g = w.g;
       if (meta === undefined) return "<h1>Watching</h1><p class=\"muted\">" + (w.off ? "No connection. Trying again…" : "Connecting…") + "</p>" + back;
       if (meta === null) return "<h1>Watching</h1><div class=\"status\">This game isn't running any more.</div>" + back;
       // Kittu's rule: no final counts and no results for the group.
       if (meta.phase === "done" || w.denied || (g && g.phase === "done"))
         return "<h1>Game over</h1><div class=\"status\">Game over: waiting for Kittu</div><p class=\"muted small\">The final count is in, or nearly: Kittu shares the result with the group after he approves it.</p>" + back;
-      var head = "<h1>Tonight's game</h1><p class=\"small muted\" style=\"margin:6px 0 0\">Started " + fmtTime(meta.d) + " · run by " + esc(meta.by) + (w.off ? " · reconnecting…" : " · live") + "</p>";
+      var head = "<h1>Tonight's game</h1><p class=\"small muted\" style=\"margin:6px 0 0\">Started " + fmtTime(meta.d) + " · run by " + esc(meta.by) + (w.off ? " · reconnecting…" : " · live") + "</p>" + (w.wt ? watchingHTML() + viewerMeHTML() : "");
       if (!g) return head + '<p class="muted">Loading the table…</p>' + back;
       var st = watchSeats(g);
       var rows = g.seats.map(function (s, k) {
@@ -2641,10 +2882,14 @@ if (typeof module !== "undefined") module.exports = PB;
           : s.c === 0 ? "Busted" : "Cashed out " + PB.grouped(s.c) + " chips (" + PB.inr(PB.value(s.c, g.ratio)) + ")";
         return '<div class="seat' + (s.c != null ? " closed" : "") + '"><div class="seatTop"><div class="dot" style="background:' + colorOf(s, k) + '">' + esc(s.n.charAt(0).toUpperCase()) + '</div><div class="seatName">' + esc(s.n) + '</div><div class="seatIn">' + PB.inr(tin) + '</div></div><div class="seatSub" style="margin-bottom:0">' + sub + "</div></div>";
       }).join("");
-      return head + '<div class="rack" style="margin-top:12px"><div><span>Cash in</span><b>' + PB.inr(st.cash) + '</b></div><div><span>Chips on table</span><b>' + PB.grouped(st.onTable) + '</b></div><div><span>Playing</span><b>' + st.open + "/" + g.seats.length + "</b></div></div>" +
+      return head + '<div class="rack" style="margin-top:12px"><div><span>Cash in</span><b>' + PB.inr(st.cash) + '</b></div><div><span>Chips out</span><b>' + PB.grouped(st.onTable) + '</b></div><div><span>Playing</span><b>' + st.open + "/" + g.seats.length + "</b></div></div>" +
         rows + '<p class="small muted">Read-only. ' + (meta.up ? "Last saved " + fmtTime(meta.up) + "." : "") + "</p>" + back;
     },
-    bind: function () { document.getElementById("home").onclick = function () { clearHash(); go("home"); }; }
+    bind: function () {
+      document.getElementById("home").onclick = function () { clearHash(); go("home"); };
+      if (document.getElementById("vNames")) viewerPickBind();
+      var vc = document.getElementById("vChange"); if (vc) vc.onclick = viewerChange;
+    }
   };
 
   // ----- 4.4: the stats explorer (standings v2) and the Friday page -----
@@ -3034,9 +3279,11 @@ if (typeof module !== "undefined") module.exports = PB;
       body = '<div id="fStats">' + storiesHTML(S) + snapHTML(S, ex) + lastHTML(S) +
         '<p class="fFoot">Shared nights only' + (S.up > 0 ? " · " + esc(dayMon(S.up)) : "") + "</p></div>";
     }
-    return heroHTML() + body;
+    return groupChip() + onPhoneCard() + heroHTML() + body;
   }
   function fridayBind() {
+    bindGroupChip();
+    var cb = document.getElementById("cont"); if (cb) cb.onclick = function () { go(G.lost ? "lost" : G.phase === "done" ? "result" : "table"); };
     ["rsvpGo", "rsvpChange"].forEach(function (idA) { var b = document.getElementById(idA); if (b) b.onclick = function () { var y = rsvpOpen(); if (y) rsvpAsk(y); }; });
     var root = document.getElementById("app"), ex = view.ex;
     root.querySelectorAll("[data-p]").forEach(function (b) { b.onclick = function () { openProfile(b.dataset.p); }; });
@@ -3078,7 +3325,7 @@ if (typeof module !== "undefined") module.exports = PB;
       return "<h1>This game moved to " + by + "'s phone</h1>" +
         '<div class="status warn">Someone tapped Continue on another phone, so that phone runs the table now. This phone has stopped saving and won\'t change anything.</div>' +
         '<p class="muted small">Your copy stays on this phone: ' + G.seats.length + " players, " + PB.inr(cashIn()) + " in. If you made changes here that " + by + "'s phone doesn't have, share your copy so they can check.</p>" +
-        '<div class="stack" style="margin-top:16px">' + (GK && G.cid ? '<button class="btn solid" id="watch">Watch instead</button>' : "") +
+        '<div class="stack" style="margin-top:16px">' + (gameGk() && G.cid ? '<button class="btn solid" id="watch">Watch instead</button>' : "") +
         // A finished copy holds the final count: a hand-over link would show
         // it to whoever opens it (Kittu's 19-Nov rule). It goes to Kittu only.
         (G.phase === "done" ? '<button class="btn" id="kittuCopy">Send my copy to Kittu</button>' : '<button class="btn" id="hand">Share my copy as a hand-over link</button>') +
@@ -3086,7 +3333,7 @@ if (typeof module !== "undefined") module.exports = PB;
     },
     bind: function () {
       if (!G || !G.lost) return VIEWS.home.bind();
-      var wb = document.getElementById("watch"); if (wb) wb.onclick = function () { location.hash = PB.cloud.validId(G.wt) ? "v=" + G.wt : "w=" + GK + "." + G.cid; };
+      var wb = document.getElementById("watch"); if (wb) wb.onclick = function () { location.hash = PB.cloud.validId(G.wt) ? "v=" + G.wt : "w=" + gameGk() + "." + G.cid; };
       var hb = document.getElementById("hand"); if (hb) hb.onclick = handOver;
       var kc = document.getElementById("kittuCopy");
       if (kc) {
@@ -3124,26 +3371,27 @@ if (typeof module !== "undefined") module.exports = PB;
       p.p.every(function (s) { return s && typeof s.n === "string" && s.n.trim() && Number.isInteger(s.in) && s.in >= 0 && Number.isInteger(s.c) && s.c >= 0; });
   }
 
-  function joinGroup(code, ask) {
+  // 4.5 (Kittu): the who's-in link (#j=<gk>, #j=<gk>&a=1) is RSVP + stats
+  // only: it always opens the Friday page. Running the table needs the
+  // table link (#t=<gk>), which also marks this phone a runner for the group.
+  function joinGroup(code, ask, run) {
     clearHash();
     if (!PB.cloud.validGk(code)) {
-      toast("That group link is damaged. Open the pinned link again.");
-      // 4.4 review: a damaged Friday link still never lands on the runner home.
-      return ask ? openFriday() : go("home");
+      toast(run ? "That table link is damaged. Ask Kittu to share it again." : "That group link is damaged. Open the pinned link again.");
+      // A damaged who's-in link never lands on the runner home.
+      return run ? go("home") : openFriday();
     }
     var was = GK;
-    GK = code; save(GKEY, GK); live.at = 0; live.list = [];
-    loadRoster(); clubOpen(); cloudKick(0);
+    GK = code; save(GKEY, GK); addGroup(GK); if (run) addRunner(GK); loadNames();
+    live.at = 0; live.list = [];
+    loadRoster(); clubOpen(); cloudKick(0); nameGroups();
     if (was !== GK) toast("Connected to the group");
-    // B9/4.4: the RSVP share link (#j=<gk>&a=1) opens the Friday page, and
-    // the answer sheet over it while this phone hasn't answered the card.
-    if (ask) {
-      // The key leaves the address bar; "#friday" keeps a reload on this page.
-      try { history.replaceState(null, "", location.pathname + location.search + "#friday"); } catch (e) {}
-      club.ask = true; go("friday", { ex: newEx() }); loadStand(); askNow(); return;
-    }
-    club.ask = false;
-    go("home");
+    if (run) { club.ask = false; return go("home"); }
+    // B9/4.4: the RSVP share link (#j=<gk>&a=1) opens the answer sheet over
+    // the Friday page while this phone hasn't answered the card.
+    // The key leaves the address bar; "#friday" keeps a reload on this page.
+    try { history.replaceState(null, "", location.pathname + location.search + "#friday"); } catch (e) {}
+    club.ask = !!ask; go("friday", { ex: newEx() }); loadStand(); askNow();
   }
   function askNow() {
     if (!club.ask || !club.loaded || view.name !== "friday") return;
@@ -3154,7 +3402,8 @@ if (typeof module !== "undefined") module.exports = PB;
     if (!a) rsvpAsk(x);
   }
   async function route(kind, code, ask) {
-    if (kind === "j") return joinGroup(code, ask);
+    if (kind === "j") return joinGroup(code, ask, false);
+    if (kind === "t") return joinGroup(code, false, true);
     if (kind === "w") return openWatch(code);
     if (kind === "v") return openWatchToken(code);
     if (kind === "s") return go("landingS", PB.cloud.validCode(code) ? { code: code } : { error: "This link is damaged — part of it is missing or was changed. Ask for it to be shared again (copy the whole link)." });
@@ -3170,7 +3419,7 @@ if (typeof module !== "undefined") module.exports = PB;
   // B7: the old #g= roster link is gone (the roster comes from the group;
   // the built-in REGULARS are the offline seed).
   function start() {
-    var m = (location.hash || "").match(/^#([hrjwsv])=([A-Za-z0-9_.-]+)(&a=1)?/);
+    var m = (location.hash || "").match(/^#([hrjtwsv])=([A-Za-z0-9_.-]+)(&a=1)?/);
     if (m) route(m[1], m[2], !!m[3]);
     // 4.4 review: #friday never falls back to the runner home, even when
     // this phone lost its group (Safari clears a site's storage after a
@@ -3185,18 +3434,21 @@ if (typeof module !== "undefined") module.exports = PB;
   window.addEventListener("storage", function (e) { if (e.key === KEY || e.key === null) resync(); });
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return cloudFlush();
+    if (pres.timer) presencePing();
     resync(); checkOwner();
     if (cloudOn() && sync.st !== "live") cloudKick(0);
     if (GK && view.name === "home") loadLive();
   });
   // Locked screen or closed tab: one last save that outlives the page.
   window.addEventListener("pagehide", cloudFlush);
+  setInterval(function () { if (vw.sub && !document.hidden) paintViewers(); }, PINGMS);
   window.addEventListener("online", function () { if (cloudOn()) cloudKick(0); });
   window.addEventListener("pageshow", function (e) { if (e.persisted) resync(); });
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch(function () {});
   }
-  if (GK) { loadRoster(); clubOpen(); if (cloudOn() && G.phase !== "done") cloudKick(1500); }
+  if (GK) { loadRoster(); clubOpen(); nameGroups(); }
+  if (cloudOn() && G.phase !== "done") cloudKick(1500);
   // A11: home re-reads what is live every 30 s, only while on screen.
   setInterval(function () { if (GK && view.name === "home" && !document.hidden) loadLive(); }, LIVEMS);
   // A13: ask the browser not to evict this phone's game under storage pressure.
