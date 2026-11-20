@@ -122,6 +122,10 @@ details.moreBox summary::after{content:"›";margin-left:auto}
 details.moreBox[open]{padding-bottom:12px}
 details.moreBox[open] summary::after{content:"⌄"}
 #settleToggle{min-height:44px;font-size:15px;font-weight:600}
+/* 4.4.1: "You: <name> · In [Change]" never squeezes the text: it wraps, and Change drops below when it can't fit beside */
+.youLine{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-top:10px}
+.youLine .youTxt{flex:1 1 11em;min-width:0;overflow-wrap:anywhere}
+.youLine .btn{width:auto;flex:0 0 auto;min-height:44px;padding:8px 18px}
 </style>
 </head>
 <body>
@@ -1442,13 +1446,14 @@ if (typeof module !== "undefined") module.exports = PB;
       [["in", "In"], ["maybe", "Maybe"], ["out", "Out"]].filter(function (p) { return by[p[0]].length; }).map(function (p) {
         return '<div class="small muted" style="margin-top:4px;overflow-wrap:anywhere"><b>' + p[1] + ":</b> " + by[p[0]].map(esc).join(", ") + "</div>";
       }).join("") +
-      (friday && mine ? '<div class="row" id="youLine" style="margin-top:10px;align-items:center;justify-content:space-between"><div style="overflow-wrap:anywhere">You: <b>' + esc(mine.n) + "</b> · " + { "in": "In", maybe: "Maybe", out: "Out" }[mine.s] + '</div><button class="btn ghost" id="rsvpChange" style="flex:0 0 auto">Change</button></div>'
+      // 4.4.1: the text wraps on its own line; Change sits beside it only if it fits (CSS .youLine).
+      (friday && mine ? '<div class="youLine" id="youLine"><div class="youTxt">You: <b>' + esc(mine.n) + "</b> · " + { "in": "In", maybe: "Maybe", out: "Out" }[mine.s] + '</div><button class="btn ghost" id="rsvpChange">Change</button></div>'
         : (mine ? '<div class="small muted" style="margin-top:6px">You (' + esc(mine.n) + "): " + { "in": "in", maybe: "maybe", out: "out" }[mine.s] + "</div>" : "") +
           '<div class="row" style="margin-top:10px"><button class="btn solid" id="rsvpGo">Answer</button></div>') + "</div>";
   }
   function rsvpPick(x, msg) {
     var list = names.map(function (r) { return r.n; }).filter(okName).sort(function (a, b) { return a.localeCompare(b); });
-    sheet('<h3>Who are you?</h3><div class="chips">' + list.map(function (n) { return '<button class="chip" data-n="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div>" +
+    sheet('<h3>Who are you?</h3><p class="muted small" id="oneAnswer">This phone answers as one person. Pick a different name and this phone\'s answer moves to it.</p><div class="chips">' + list.map(function (n) { return '<button class="chip" data-n="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div>" +
       '<label class="lab">Someone else</label><div class="row"><input class="field" id="other" maxlength="40" placeholder="Your name"><button class="btn" id="otherGo" style="flex:0 0 90px">Next</button></div><p class="bad small" id="err">' + esc(msg || "") + "</p>", function (el) {
       el.querySelectorAll("[data-n]").forEach(function (b) {
         b.onclick = function () {
@@ -1481,7 +1486,7 @@ if (typeof module !== "undefined") module.exports = PB;
       el.querySelector("#isme").onclick = function () { rsvpAsk(x, other); };
       el.querySelector("#notme").onclick = function () { rsvpPick(x, "Add something to tell you apart from " + other + ", like an initial."); };
     });
-    sheet("<h3>" + esc(typeof x.c.title === "string" && x.c.title ? x.c.title : "Poker") + '</h3><p class="muted small">Answering as <b>' + esc(who) + '</b>. <a href="#" id="chg">Not you?</a></p>' +
+    sheet("<h3>" + esc(typeof x.c.title === "string" && x.c.title ? x.c.title : "Poker") + '</h3><p class="muted small">Answering as <b>' + esc(who) + '</b>. <a href="#" id="chg">Not you? Change who this phone answers as</a></p>' +
       '<div class="stack"><button class="btn solid" data-s="in">In</button><button class="btn" data-s="maybe">Maybe</button><button class="btn ghost" data-s="out">Out</button></div><p class="bad small" id="err"></p>', function (el) {
       el.querySelector("#chg").onclick = function (e) { e.preventDefault(); rsvpPick(x); };
       el.querySelectorAll("[data-s]").forEach(function (b) {
@@ -1494,10 +1499,22 @@ if (typeof module !== "undefined") module.exports = PB;
           var r = t ? await PB.cloud.req("PUT", "g/" + gk + "/rsvp/" + x.day + "/r/" + pk, { n: who.slice(0, 40), s: s, at: { ".sv": "timestamp" }, u: t.uid }) : { ok: false, net: true };
           if (r.ok) {
             save(ME, who);
-            var c = club.rsvp && club.rsvp[x.day];
+            var c = club.rsvp && club.rsvp[x.day], cr = (c && c.r && typeof c.r === "object" ? c.r : null) || (x.c && x.c.r && typeof x.c.r === "object" ? x.c.r : {});
+            // 4.4.1: one phone = one answer per card. Rows this phone wrote
+            // under another name are moved: deleted once the new one is in.
+            var olds = Object.keys(cr).filter(function (k) { var a = cr[k]; return k !== pk && a && a.u === t.uid; });
             if (c) { if (!c.r || typeof c.r !== "object") c.r = {}; c.r[pk] = { n: who.slice(0, 40), s: s, at: now(), u: t.uid }; }
-            closeSheet(); toast(s === "in" ? "You're in." : s === "out" ? "Marked as out." : "Marked as maybe.");
+            closeSheet();
             if (view.name === "home" || view.name === "friday") render();
+            var moved = [];
+            for (var i = 0; i < olds.length; i++) {
+              var oldName = okName(cr[olds[i]] && cr[olds[i]].n) ? cr[olds[i]].n : olds[i];
+              var d = await PB.cloud.req("DELETE", "g/" + gk + "/rsvp/" + x.day + "/r/" + olds[i]);
+              // Refused (older rules) or no signal: the new answer stands; nothing to alarm anyone with.
+              if (d.ok) { moved.push(oldName); var cc = club.rsvp && club.rsvp[x.day]; if (cc && cc.r && typeof cc.r === "object") delete cc.r[olds[i]]; }
+            }
+            toast(moved.length ? "Moved your answer from " + moved.join(", ") + " to " + who.slice(0, 40) : s === "in" ? "You're in." : s === "out" ? "Marked as out." : "Marked as maybe.");
+            if (moved.length && (view.name === "home" || view.name === "friday")) render();
             return;
           }
           var why = r.denied ? "This card is closed now. Ask Kittu." : "No connection. Nothing changed — try again.";
