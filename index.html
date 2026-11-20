@@ -122,10 +122,193 @@ details.moreBox summary::after{content:"›";margin-left:auto}
 details.moreBox[open]{padding-bottom:12px}
 details.moreBox[open] summary::after{content:"⌄"}
 #settleToggle{min-height:44px;font-size:15px;font-weight:600}
-/* 4.4.1: "You: <name> · In [Change]" never squeezes the text: it wraps, and Change drops below when it can't fit beside */
-.youLine{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-top:10px}
-.youLine .youTxt{flex:1 1 11em;min-width:0;overflow-wrap:anywhere}
-.youLine .btn{width:auto;flex:0 0 auto;min-height:44px;padding:8px 18px}
+/* 4.4.3: the Friday page (body.fri) — one sans type scale (34/28/20/17/15/13), an 8-pt grid, hairline cards */
+body.fri{--bg:#0D0F12;--card:#16181D;--card2:#1C1F25;--hair:rgba(255,255,255,.065);--hair2:rgba(255,255,255,.1);--txt:#ECEEF0;--mut:#8B9198;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Inter,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+body.fri header.top{background:var(--bg);padding-bottom:8px;border-bottom:1px solid transparent;transition:background .2s,border-color .2s}
+body.fri header.top.scrolled{background:rgba(13,15,18,.72);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);border-bottom-color:var(--hair2)}
+body.fri .brand{font-family:inherit;letter-spacing:-.01em;font-size:15px;font-weight:650;text-transform:none;gap:8px}
+body.fri .brand i{width:14px;height:14px;border-width:2.5px}
+body.fri .brandSub{display:none}
+body.fri .fig,body.fri h1,body.fri h2,body.fri h3{font-family:inherit;font-variant-numeric:tabular-nums}
+body.fri .muted{color:var(--mut)}
+body.fri .up{color:#5FBF8A}body.fri .down{color:#E5786D}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.fHero{margin:8px 0 0;padding:16px 16px 12px;border-radius:16px;background:radial-gradient(90% 80% at 0% 0%,rgba(127,199,166,.13),rgba(127,199,166,0) 60%),var(--card);border:1px solid var(--hair)}
+.fHeroTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.fTitle{font-size:28px;line-height:1.1;font-weight:700;letter-spacing:-.025em;margin:0}
+.fSub{font-size:13px;color:var(--mut);margin-top:4px}
+.fLiveChip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#7FC7A6;background:rgba(127,199,166,.1);border-radius:999px;padding:5px 10px 5px 8px;flex:0 0 auto;margin-top:3px}
+.fLive{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5FBF8A;animation:fPulse 2.4s ease-out infinite;margin-left:10px;vertical-align:middle;position:relative;top:-3px}
+@keyframes fPulse{0%{box-shadow:0 0 0 0 rgba(95,191,138,.55)}70%{box-shadow:0 0 0 7px rgba(95,191,138,0)}100%{box-shadow:0 0 0 0 rgba(95,191,138,0)}}
+.fNone{font-size:17px;font-weight:600;margin:12px 0 4px}
+.fStat{display:flex;align-items:baseline;gap:6px;margin:6px 0 12px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.fStatIn{font-size:17px;font-weight:600;color:var(--txt)}
+.fStatIn b{font-size:34px;font-weight:700;letter-spacing:-.03em;color:#7FC7A6;margin-right:4px;font-variant-numeric:tabular-nums;animation:fFade .35s ease-out}
+.fStatQ{font-size:15px;font-weight:500;color:var(--mut)}
+.fDot{font-size:15px;color:rgba(255,255,255,.22)}
+@keyframes fFade{from{opacity:.3}to{opacity:1}}
+.fPills{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px 4px}
+.fPills.stack{display:flex;gap:0;align-items:center}
+.fPills.stack .fPill+.fPill{margin-left:-10px}
+.fPill{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;background:none;border:0;padding:0;cursor:pointer;color:var(--txt);min-height:44px}
+.fPill:disabled{cursor:default}
+.fAv{width:40px;height:40px;border-radius:50%;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:650;letter-spacing:-.01em;box-shadow:0 0 0 2px var(--card);background-image:linear-gradient(rgba(255,255,255,.14),rgba(0,0,0,.08))!important}
+.fAv.sm{width:32px;height:32px;font-size:12px}
+.fAv.lg{width:56px;height:56px;font-size:19px}
+.fPn{font-size:12px;font-weight:500;color:var(--mut);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fMoreAv{margin-left:6px;font-size:13px;font-weight:600;color:var(--mut)}
+.fEmpty{font-size:15px;color:var(--mut)}
+.fQuiet{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px;font-size:13px;color:var(--mut)}
+.fQl{color:var(--txt);font-weight:600}
+.youLine{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;margin-top:6px}
+.youLine .youTxt{min-width:0;overflow-wrap:anywhere}
+.fStatus{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:15px;font-weight:600}
+.fStatus>span:first-child{border-radius:999px;padding:5px 10px;font-size:13px}
+.fStatus.s-in>span:first-child{background:rgba(95,191,138,.14);color:#7FD3A3}
+.fStatus.s-maybe>span:first-child{background:rgba(229,199,132,.14);color:#E5C784}
+.fStatus.s-out>span:first-child{background:rgba(255,255,255,.07);color:var(--mut)}
+.fAs{font-size:13px;font-weight:500;color:var(--mut)}
+.linkBtn{background:none;border:0;color:#7FC7A6;font-weight:600;font-size:15px;min-height:44px;padding:0 4px;cursor:pointer}
+.fAnswer{margin-top:16px}
+.fQuip{margin:6px 0 0;font-size:13px;line-height:1.4;color:var(--mut)}
+.fSec{margin-top:16px}
+h2.fH{font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mut);margin:0 0 10px}
+.fSecTop{display:flex;align-items:center;justify-content:space-between;min-height:24px;margin:0 0 8px;gap:12px}
+.fSecTop h2.fH{margin:0}
+.fLinkS{position:relative;display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:#7FC7A6;font-size:13px;font-weight:600;min-height:24px;padding:0;cursor:pointer}
+.fLinks{display:inline-flex;gap:20px}
+.fLinkS::before{content:"";position:absolute;inset:-10px -8px}
+.fLinkS span{font-size:17px;line-height:1}
+.fRail{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;scroll-snap-type:x mandatory;scroll-padding:0 16px;scrollbar-width:none;overscroll-behavior-x:contain}
+.fRail::-webkit-scrollbar{display:none}
+.fRail::after{content:"";flex:0 0 6px}
+.fTile{flex:0 0 168px;height:88px;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:space-between;text-align:left;padding:12px;border-radius:16px;border:1px solid var(--hair);background:var(--card);color:var(--txt);cursor:pointer;min-width:0}
+.fTileTop{display:flex;align-items:center;gap:8px;min-width:0}
+.fChev{margin-left:auto;color:rgba(255,255,255,.28);flex:0 0 auto}
+.fSs.fit2{font-size:15px}.fSs.fit3{font-size:13.5px}
+.fIc{width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.fSl{font-size:12px;font-weight:500;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fSs{font-size:17px;font-weight:700;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.fSh{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fCard{background:var(--card);border:1px solid var(--hair);border-radius:16px}
+.fBoard{padding:0;overflow:visible}
+.fBoardHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px 6px 10px;min-height:44px}
+.fSeg{display:inline-flex;background:rgba(255,255,255,.06);border-radius:9px;padding:2px}
+.fSeg button{border:0;background:none;color:var(--mut);font-size:13px;font-weight:600;min-height:30px;padding:0 12px;border-radius:7px;cursor:pointer;font-variant-numeric:tabular-nums}
+.fSeg button.on{background:#2A2E35;color:var(--txt);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.fSort{position:relative}
+.fSortBtn{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--mut);font-size:13px;font-weight:600;min-height:36px;padding:0 6px;cursor:pointer}
+.fMenu{position:absolute;right:0;top:40px;z-index:4;background:#22252B;border:1px solid var(--hair2);border-radius:12px;padding:4px;min-width:140px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.fMenu[hidden]{display:none}
+.fMenu button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--txt);font-size:15px;min-height:40px;padding:0 12px;border-radius:8px;cursor:pointer}
+.fMenu button.on{color:#7FC7A6}
+.fRow{display:grid;grid-template-columns:20px minmax(0,1fr) auto 8px;gap:12px;align-items:center;min-height:48px;padding:0 16px 0 10px;border-top:1px solid var(--hair);cursor:pointer}
+.fRow.me{background:rgba(127,199,166,.07)}
+.fRow:last-child{border-radius:0 0 16px 16px}
+.fRk{font-size:13px;color:var(--mut);text-align:right;font-variant-numeric:tabular-nums}
+.fNm{min-width:0;display:flex;flex-direction:column;gap:2px}
+.fNt{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fMeta{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fYou{font-size:11px;font-weight:600;color:#7FC7A6;background:rgba(127,199,166,.14);border-radius:6px;padding:1px 6px;margin-left:8px;vertical-align:2px}
+.fNet{font-size:15px;font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
+.fGap{height:6px;border-top:1px solid var(--hair);background:repeating-linear-gradient(90deg,var(--hair2) 0 2px,transparent 2px 6px) center/100% 1px no-repeat}
+.fLink{display:flex;align-items:center;justify-content:flex-end;gap:6px;width:100%;border:0;border-top:1px solid var(--hair);background:none;color:#7FC7A6;font-size:15px;font-weight:600;min-height:48px;padding:0 16px;cursor:pointer;border-radius:0 0 16px 16px}
+.fLink span{font-size:20px;line-height:1;margin-top:-2px}
+.fLast{overflow:hidden}
+.fCardHead{display:flex;justify-content:space-between;align-items:baseline;padding:12px 16px 2px;font-size:15px;font-weight:600}
+.fCardHead .muted{font-size:13px;font-weight:500}
+.fTop3{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:44px;padding:0 16px;cursor:pointer}
+.fTop3:last-child{margin-bottom:6px}
+.fPos{font-size:13px;color:var(--mut);display:flex;justify-content:center;font-variant-numeric:tabular-nums}
+.fPos .fIc{width:24px;height:24px}
+.fTop3 .fNt{font-size:15px}
+.fTop3.fWin .fNt{font-weight:700}
+.fTop3 .fig{text-align:right;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.fBar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden}
+.fBar i{display:block;height:100%;border-radius:2px}
+.fBar .pos{background:linear-gradient(90deg,#3E8F66,#5FBF8A)}.fBar .neg{background:#E5786D}
+.fFoot{text-align:center;font-size:12px;color:var(--mut);margin:16px 0 0}
+.fPad{padding:16px}
+/* sheets */
+.fSheet{position:relative;background:var(--card)!important;border:1px solid var(--hair)!important;border-bottom:0!important;border-radius:22px 22px 0 0!important;padding:20px 16px calc(24px + env(safe-area-inset-bottom))!important;animation:fUp .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes fUp{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.fX{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.fX::before{content:"";position:absolute;inset:-6px}
+.fProf .fPh{display:flex;align-items:center;gap:14px;padding-right:40px}
+.fPname{font-size:20px;font-weight:700;letter-spacing:-.02em;overflow-wrap:anywhere;line-height:1.15}
+.fPsub{font-size:13px;color:var(--mut);margin:12px 0 0}
+.fPall{font-size:13px;font-weight:500;color:var(--mut);margin-left:6px}
+.fPnet{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.fTiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0 8px}
+.fTileS{background:var(--card2);border-radius:14px;padding:12px}
+.fTileS span{display:block;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fTileS b{display:block;font-size:22px;font-weight:700;margin-top:4px;letter-spacing:-.02em}
+.fSpark{display:block;margin:8px 0 12px}
+.fSpT{font-size:10px;fill:#8B9198;font-family:inherit;font-variant-numeric:tabular-nums}
+.fSpNow{font-weight:600}
+.fNote{font-size:12px;color:var(--mut);margin:8px 2px 0;line-height:1.4}
+.fKv{padding:0 16px}
+.fKv .line{min-height:48px;padding:10px 0;border-bottom:1px solid var(--hair);align-items:center;gap:12px}
+.fKv .line:last-child{border-bottom:0}
+.fKv .line>span:first-child{flex:0 0 auto;font-size:15px}
+.fKv .line .fig{font-size:15px;font-weight:600}
+h3.fH2{font-size:13px;font-weight:600;color:var(--mut);margin:24px 0 10px;font-family:inherit;letter-spacing:0;text-transform:none}
+.fRivals{padding:0 14px}
+.fRival{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto 8px;gap:12px;align-items:center;width:100%;min-height:56px;background:none;border:0;border-bottom:1px solid var(--hair);text-align:left;cursor:pointer;padding:0;color:var(--txt)}
+.fScore{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.fPick{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;font-size:15px}
+.fPick select{appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%238B9198' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;border:0;border-radius:10px;color:var(--txt);font-size:15px;min-height:36px;padding:0 28px 0 12px;max-width:60%}
+.fTableSheet h2,.fListSheet h2{font-size:20px;font-weight:700;color:var(--txt);text-transform:none;letter-spacing:-.02em;margin:0 0 16px}
+.fTableSheet .seg{border:0;background:rgba(255,255,255,.06);border-radius:10px;padding:2px}
+.fTableSheet .seg button{min-height:34px;border-radius:8px;font-size:14px;font-weight:600;color:var(--mut)}
+.fTableSheet .seg button.on{background:#2A2E35;color:var(--txt)}
+.fTableSheet .seg button+button{border-left:0}
+.fSheet .card{background:transparent;border:0;padding:0;margin:12px 0 0}
+.fSheet .line{border-bottom:1px solid var(--hair)}
+.fSheet .stRow{min-height:48px;align-items:center}
+.fSheet .stRow .nm{font-weight:600;font-size:15px}
+.fSheet .stHead{font-size:12px}
+.fSheet .stRow .fig.small{font-size:13px}
+.fSheet .btn.ghost{border-color:var(--hair2);min-height:44px;font-size:15px}
+.fBack{margin:4px 0 12px}
+.fList{padding:0 16px}
+.fLRow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:56px;border:0;border-bottom:1px solid var(--hair);background:none;color:var(--txt);text-align:left;padding:8px 0;cursor:default}
+button.fLRow{cursor:pointer}
+.fLRow:last-child{border-bottom:0}
+.fLMid{min-width:0;display:flex;flex-direction:column;gap:2px}
+.fLLab{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fLSub{font-size:13px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fLVal{font-size:15px;font-weight:650;text-align:right;white-space:nowrap}
+.fDate{width:40px;height:40px;border-radius:10px;background:var(--card2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;color:var(--mut);line-height:1.05}
+.fDate b{font-size:16px;color:var(--txt);font-weight:700}
+.fList#records .fLRow .fLLab{font-size:13px;font-weight:500;color:var(--mut)}
+.fList#records .fLRow .fLSub{font-size:15px;font-weight:600;color:var(--txt)}
+.fMoreN{border:0;justify-content:center;border-radius:12px}
+.fSheet #nightView h2{font-size:20px;font-weight:700;color:var(--txt);text-transform:none;letter-spacing:-.02em;margin:0 0 4px;font-family:inherit}
+.fSheet #nightView .card{margin-top:8px}
+.fSheet .nRow{min-height:48px;align-items:center}
+.th{background:none;border:0;color:inherit;font:inherit;text-align:right;cursor:pointer;min-height:36px;padding:0}.th.on{color:#7FC7A6}
+.fDots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.fDots i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18);transition:background .2s,width .2s}
+.fDots i.on{width:14px;border-radius:3px;background:#7FC7A6}
+.fRail{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+.fTile.noTap{cursor:default}.fTile.noTap .fChev{display:none}
+.fHint{font-size:12px;color:var(--mut);margin:-4px 0 8px}
+.fRow .fChev{color:rgba(255,255,255,.22)}
+.fRow:active,.fTop3:active,.fRival:active,.fTile:active{background:rgba(255,255,255,.04)}
+.fTile:active{transform:scale(.985)}
+.fRow:hover .fNt,.fRow:active .fNt,.fTop3:hover .fNt,.fTop3:active .fNt,.fTile:hover .fSh span:first-child{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.3)}
+.fPill:active .fAv{box-shadow:0 0 0 2px var(--card),0 0 0 4px rgba(127,199,166,.55)}
+.fTiles6{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 0}
+.fTiles6 .fTileS{padding:10px 12px;min-height:72px}
+.fTiles6 .fTileS b{font-size:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fSubv{display:block;font-style:normal;font-size:11px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fRivTop{margin-top:20px}.fRivTop .fH2{margin:0}
+.fTag{font-size:11px;font-weight:600;color:var(--mut);background:rgba(255,255,255,.06);border-radius:6px;padding:2px 6px;white-space:nowrap}
+.fRival .fChev{color:rgba(255,255,255,.22)}
+.fRival{padding:0 0 0 0}
+@media (max-width:360px){.fPills .fAv{width:34px;height:34px;font-size:12.5px}.fRow{gap:10px}}
+@media (prefers-reduced-motion:reduce){.fLive,.fStatIn b,.fSheet{animation:none}.fRail{scroll-behavior:auto}}
 </style>
 </head>
 <body>
@@ -951,7 +1134,99 @@ PB.stats = (function () {
     });
     return o;
   }
-  return { rnd: rnd, parse: parse, table: table, profile: profile, records: records, h2h: h2h, history: history, seasonNights: seasonNights, yearOf: yearOf };
+  // 4.4.6: "Tonight's storylines" — up to 8 facts, about the players who said
+  // In (focus ids, any order; the whole group when none of them has played).
+  // One card per player where possible: each kind takes its best candidate
+  // among players not already on a card. Kinds, in this order:
+  //  hot   { n }                       longest current winning run (>= 2)
+  //  rival { b, aAbove, bAbove, together } the pair that met most (>= 3; closer split wins a tie); id leads
+  //  chase { gap, place, above, season }   smallest gap to the place above (season table; all-time if empty)
+  //  last  { net, d }                  the last game's winner (any player)
+  //  climb { from, to }                most places gained in the season table by the last game (>= 1)
+  //  comeback { low, now }             season running total went below 0 and is above 0 now (largest swing)
+  //  mile  { nights, tonight, most, round } most nights (a round 10th/20th… tonight wins first)
+  //  iron  { n }                       most games in a row up to the last one (>= 3)
+  //  cold  { n }                       longest current losing run (>= 2)
+  // Ties go by name.
+  function storylines(S, focus) {
+    var played = function (id) { return !!S.players[id] && history(S, id).length > 0; };
+    var seen = Object.create(null), ids = [];
+    (focus || []).forEach(function (id) { if (typeof id === "string" && played(id) && !seen[id]) { seen[id] = 1; ids.push(id); } });
+    var tonight = ids.length > 0;
+    if (!tonight) ids = S.order.filter(played);
+    var byName = function (a, b) { return cmpName(S.players, a, b); };
+    ids.sort(byName);
+    var used = Object.create(null), out = [], lastDone = false, fill = false;
+    // The fill-up pass only adds kinds the strip doesn't have yet.
+    function take(c) { if (!c || (fill && out.some(function (o) { return o.k === c.k; }))) return; out.push(c); used[c.id] = 1; if (c.k === "rival") used[c.b] = 1; }
+    // Tonight's In players first; if that leaves the strip short, the rest of the group.
+    function pass(ids, tonight) {
+    function free(list) { return list.filter(function (id) { return !used[id]; }); }
+    var P = Object.create(null); ids.forEach(function (id) { P[id] = profile(S, id); });
+    function best(list, score, min) { var b = null, bs = 0; list.forEach(function (id) { var v = score(id); if (v !== null && v >= min && (!b || v > bs)) { b = id; bs = v; } }); return b ? { id: b, v: bs } : null; }
+    // hot
+    var h = best(free(ids), function (id) { return P[id].streak; }, 2);
+    take(h && { k: "hot", id: h.id, n: h.v });
+    // rival
+    var rv = null, fr = free(ids);
+    for (var i = 0; i < fr.length; i++) for (var j = i + 1; j < fr.length; j++) {
+      var o = h2h(S, fr[i], fr[j]);
+      if (!o || o.together < 3) continue;
+      var split = Math.abs(o.aAbove - o.bAbove);
+      if (!rv || o.together > rv.together || (o.together === rv.together && split < rv.split)) {
+        var aL = o.aAbove >= o.bAbove;
+        rv = { k: "rival", id: aL ? o.a : o.b, b: aL ? o.b : o.a, aAbove: aL ? o.aAbove : o.bAbove, bAbove: aL ? o.bAbove : o.aAbove, together: o.together, split: split };
+      }
+    }
+    if (rv) { delete rv.split; take(rv); }
+    // chase
+    var season = seasonNights(S), inSeason = season.length > 0, rows = table(S, inSeason ? "season" : "all", "net"), ch = null;
+    rows.forEach(function (r, k) {
+      if (!k || !P[r.id] || used[r.id]) return;
+      var gap = rows[k - 1].net - r.net;
+      if (gap > 0 && (!ch || gap < ch.gap)) ch = { k: "chase", id: r.id, gap: gap, place: k, above: rows[k - 1].id, season: inSeason };
+    });
+    take(ch);
+    // last game's winner
+    var lw = S.nights[0].rows[0];
+    if (!lastDone && lw.net > 0 && !used[lw.id]) lastDone = true, take({ k: "last", id: lw.id, net: lw.net, d: S.nights[0].d });
+    // climber: places gained in the season table by the last season game
+    if (season.length >= 2) {
+      var rk = function (list) { var m = Object.create(null); list.forEach(function (r, k) { m[r.id] = k + 1; }); return m; };
+      var now1 = rk(table({ players: S.players, nights: season }, "all", "net")), was = rk(table({ players: S.players, nights: season.slice(1) }, "all", "net"));
+      var c = best(free(ids), function (id) { return now1[id] && was[id] ? was[id] - now1[id] : null; }, 1);
+      take(c && { k: "climb", id: c.id, from: was[c.id], to: now1[c.id] });
+    }
+    // comeback this season
+    if (inSeason) {
+      var cb = null;
+      free(ids).forEach(function (id) {
+        var run = 0, low = 0, any = false;
+        for (var k = season.length - 1; k >= 0; k--) season[k].rows.forEach(function (r) { if (r.id === id) { any = true; run += r.net; if (run < low) low = run; } });
+        if (any && low < 0 && run > 0 && (!cb || run - low > cb.now - cb.low)) cb = { k: "comeback", id: id, low: low, now: run };
+      });
+      take(cb);
+    }
+    // milestone
+    var maxAll = 0; S.order.forEach(function (id) { var n = history(S, id).length; if (n > maxAll) maxAll = n; });
+    var ml = null;
+    free(ids).forEach(function (id) {
+      var n = P[id].nights, next = tonight ? n + 1 : n, round = next >= 10 && next % 10 === 0;
+      if (!ml || (round && !ml.round) || (round === ml.round && n > ml.nights)) ml = { k: "mile", id: id, nights: n, tonight: tonight, most: n >= maxAll, round: round };
+    });
+    take(ml);
+    // iron man: games in a row up to the last one
+    var ir = best(free(ids), function (id) { var n = 0; for (var k = 0; k < S.nights.length && S.nights[k].rows.some(function (r) { return r.id === id; }); k++) n++; return n; }, 3);
+    take(ir && { k: "iron", id: ir.id, n: ir.v });
+    // cold
+    var cd = best(free(ids), function (id) { return -P[id].streak; }, 2);
+    take(cd && { k: "cold", id: cd.id, n: cd.v });
+    }
+    pass(ids, tonight);
+    if (tonight && out.length < 6) { fill = true; pass(S.order.filter(played).sort(byName), false); }
+    return out.slice(0, 8);
+  }
+  return { rnd: rnd, storylines: storylines, parse: parse, table: table, profile: profile, records: records, h2h: h2h, history: history, seasonNights: seasonNights, yearOf: yearOf };
 })();
 if (typeof module !== "undefined") module.exports = PB;
 /*CORE-END*/
@@ -1434,22 +1709,19 @@ if (typeof module !== "undefined") module.exports = PB;
   // The nearest upcoming open card (today counts).
   function rsvpOpen() { var today = isoDay(now()); return rsvpCards().filter(function (x) { return x.c.open === true && x.day >= today; })[0] || null; }
   function rsvpDayTitle(x) { var p = x.day.split("-").map(Number); return fmtDay(new Date(p[0], p[1] - 1, p[2]).getTime()); }
-  // friday: the Friday page's card ("You: <name> · In [Change]").
-  function rsvpCardHTML(friday) {
+  // The runner home's Friday card (the Friday page draws its own hero).
+  function rsvpCardHTML() {
     var x = rsvpOpen(); if (!x) return "";
     var ans = rsvpAnswers(x.c), by = { "in": [], maybe: [], out: [] };
     ans.forEach(function (a) { by[a.s].push(a.n); });
     var me = load(ME, ""), mine = me && ans.find(function (a) { return a.pk === rsvpKey(me); });
     return '<div class="card" id="rsvpCard"><div class="small muted">' + esc(rsvpDayTitle(x)) + '</div><div style="font-weight:650;margin:4px 0 4px">' + esc(typeof x.c.title === "string" && x.c.title ? x.c.title : "Poker") + "</div>" +
       '<div class="small" id="tally">' + by["in"].length + " in · " + by.maybe.length + " maybe · " + by.out.length + " out</div>" +
-      '<div class="small muted quip" id="rsvpQuip" style="margin-top:2px;font-style:italic">' + esc(quip(RSVP_LINES, x.day)) + "</div>" +
       [["in", "In"], ["maybe", "Maybe"], ["out", "Out"]].filter(function (p) { return by[p[0]].length; }).map(function (p) {
         return '<div class="small muted" style="margin-top:4px;overflow-wrap:anywhere"><b>' + p[1] + ":</b> " + by[p[0]].map(esc).join(", ") + "</div>";
       }).join("") +
-      // 4.4.1: the text wraps on its own line; Change sits beside it only if it fits (CSS .youLine).
-      (friday && mine ? '<div class="youLine" id="youLine"><div class="youTxt">You: <b>' + esc(mine.n) + "</b> · " + { "in": "In", maybe: "Maybe", out: "Out" }[mine.s] + '</div><button class="btn ghost" id="rsvpChange">Change</button></div>'
-        : (mine ? '<div class="small muted" style="margin-top:6px">You (' + esc(mine.n) + "): " + { "in": "in", maybe: "maybe", out: "out" }[mine.s] + "</div>" : "") +
-          '<div class="row" style="margin-top:10px"><button class="btn solid" id="rsvpGo">Answer</button></div>') + "</div>";
+      (mine ? '<div class="small muted" style="margin-top:6px">You (' + esc(mine.n) + "): " + { "in": "in", maybe: "maybe", out: "out" }[mine.s] + "</div>" : "") +
+          '<div class="row" style="margin-top:10px"><button class="btn solid" id="rsvpGo">Answer</button></div>' + "</div>";
   }
   function rsvpPick(x, msg) {
     var list = names.map(function (r) { return r.n; }).filter(okName).sort(function (a, b) { return a.localeCompare(b); });
@@ -1547,28 +1819,6 @@ if (typeof module !== "undefined") module.exports = PB;
   function okBuyin(v) { return Number.isInteger(v) && v >= 100 && v <= 1000000 && v % 100 === 0; }
   function okRatio(v) { return Number.isInteger(v) && v >= 1 && v <= 1000; }
   function defaults() { var c = load(CFG, {}) || {}; return { unit: okBuyin(c.buyin) ? c.buyin : 2000, ratio: okRatio(c.ratio) ? c.ratio : 2 }; }
-  // B9: a line for the RSVP card and for "Game over: waiting for Kittu".
-  // Group-chat roast, Hyderabadi, cricket; no figures, no films, no politics.
-  var RSVP_LINES = [
-    "Maybe is not an answer, mama. In or out.",
-    "Tap in before the good chairs go. Latecomers field at fine leg all night.",
-    "Your wallet has been picked for the squad. Don't drop it in the slips.",
-    "Saying out? Bold. The chips will miss you. Nobody else will.",
-    "Bring cash, bring snacks, leave the sob stories at home.",
-    "Openers wanted. Must be ready to get bowled early, as usual."
-  ];
-  var OVER_LINES = [
-    "Stumps drawn. Kittu is the third umpire now. No appeals.",
-    "Chips are counted. Losers, start practising the card-dead speech.",
-    "Over and out. If you lost, it was the dealer. Obviously.",
-    "Rain stopped play. Just kidding, Kittu did. Wait for the scorecard.",
-    "Table is closed, boss. Like a good dum biryani, the result takes its own time.",
-    "Excuses can be posted in the group. Nobody will read them, but post."
-  ];
-  function quip(list, seed) {
-    var h = 0, s = String(seed || ""); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    return list[h % list.length];
-  }
 
   // ---------- money helpers on the live game ----------
   function totalIn(s) { return PB.sum(s.b); }
@@ -1662,6 +1912,9 @@ if (typeof module !== "undefined") module.exports = PB;
     if (G && G.lost && ["table", "count", "result"].indexOf(view.name) >= 0) view = { name: "lost" };
     closeDockIfNeeded();
     whoEl.textContent = view.name === "watch" ? "Watching" : view.name === "friday" ? "" : G && G.by ? "Run by " + G.by : "";
+    // 4.4.3: the Friday page has its own type and one compact top bar.
+    document.body.classList.toggle("fri", view.name === "friday");
+    var bn = document.getElementById("brandName"); if (bn) bn.textContent = view.name === "friday" ? "Poker Bank" : "POKER BANK";
     paintSync();
     var v = VIEWS[view.name] || VIEWS.home;
     app.innerHTML = v.html();
@@ -2378,7 +2631,7 @@ if (typeof module !== "undefined") module.exports = PB;
       if (meta === null) return "<h1>Watching</h1><div class=\"status\">This game isn't running any more.</div>" + back;
       // Kittu's rule: no final counts and no results for the group.
       if (meta.phase === "done" || w.denied || (g && g.phase === "done"))
-        return "<h1>Game over</h1><div class=\"status\">Game over: waiting for Kittu</div><p class=\"small quip\" id=\"overQuip\" style=\"font-style:italic\">" + esc(quip(OVER_LINES, w.wt || w.id || "")) + "</p><p class=\"muted small\">The final count is in, or nearly: Kittu shares the result with the group after he approves it.</p>" + back;
+        return "<h1>Game over</h1><div class=\"status\">Game over: waiting for Kittu</div><p class=\"muted small\">The final count is in, or nearly: Kittu shares the result with the group after he approves it.</p>" + back;
       var head = "<h1>Tonight's game</h1><p class=\"small muted\" style=\"margin:6px 0 0\">Started " + fmtTime(meta.d) + " · run by " + esc(meta.by) + (w.off ? " · reconnecting…" : " · live") + "</p>";
       if (!g) return head + '<p class="muted">Loading the table…</p>' + back;
       var st = watchSeats(g);
@@ -2432,17 +2685,69 @@ if (typeof module !== "undefined") module.exports = PB;
     return '<div class="line" data-k="' + k + '"><span class="muted">' + label + '</span><span class="fig ' + (cls || "") + '" style="text-align:right;overflow-wrap:anywhere">' + value + "</span></div>";
   }
   function streakText(n) { return n > 0 ? n + " up" : n < 0 ? (-n) + " down" : "—"; }
-  function profileHTML(S, id) {
+  function shortDay(ms) { var d = new Date(ms); return d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + " " + d.getFullYear(); }
+  // The profile's running total: a zero baseline, a gradient fill, a dot at the end, min/max labels.
+  function sparkPro(run) {
+    if (!run.length) return "";
+    var pts = run.length === 1 ? [0, run[0]] : [0].concat(run), W = 320, H = 96, P = 6, T = 14, B = 14;
+    var lo = Math.min(0, Math.min.apply(null, pts)), hi = Math.max(0, Math.max.apply(null, pts)), span = hi - lo || 1;
+    function x(i) { return (P + i * (W - 2 * P) / (pts.length - 1)).toFixed(1); }
+    function y(v) { return (T + (hi - v) * (H - T - B) / span).toFixed(1); }
+    var line = pts.map(function (v, i) { return x(i) + "," + y(v); }).join(" "), end = run[run.length - 1], c = end >= 0 ? "#5FAE84" : "#D77870";
+    var mx = Math.max.apply(null, run), mn = Math.min.apply(null, run);
+    return '<svg id="spark" class="fSpark" viewBox="0 0 ' + W + " " + H + '" width="100%" height="' + H + '" role="img" aria-label="Running total">' +
+      '<defs><linearGradient id="sg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="' + c + '" stop-opacity=".28"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></linearGradient></defs>' +
+      '<polygon fill="url(#sg)" points="' + x(0) + "," + y(0) + " " + line + " " + x(pts.length - 1) + "," + y(0) + '"/>' +
+      '<line x1="' + P + '" x2="' + (W - P) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="rgba(255,255,255,.14)" stroke-width="1" stroke-dasharray="3 4"/>' +
+      '<polyline fill="none" stroke="' + c + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' + line + '"/>' +
+      '<circle cx="' + x(pts.length - 1) + '" cy="' + y(end) + '" r="3.5" fill="' + c + '" stroke="#16181D" stroke-width="2"/>' +
+      '<text x="' + P + '" y="10" class="fSpT">High ' + PB.signed(mx) + '</text><text x="' + P + '" y="' + (H - 2) + '" class="fSpT">Low ' + PB.signed(mn) + "</text>" +
+      '<text x="' + (W - P) + '" y="10" text-anchor="end" class="fSpT fSpNow" style="fill:' + c + '">Now ' + PB.signed(end) + "</text></svg>";
+  }
+  function profileHTML(S, id, opts) {
+    opts = opts || {};
     var p = PB.stats.profile(S, id);
     if (!p) return '<p class="muted">That player isn\'t in the standings.</p>';
-    return '<div id="profile"><h2 style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:' + pdot(S, id) + '">' + esc(p.n.charAt(0).toUpperCase()) + "</span>" + esc(p.n) + '</h2><p class="small muted">All-time · shared nights</p>' +
-      sparkSVG(p.run) + '<div class="card">' +
-      kv("net", "Net", PB.signed(p.net), figCls(p.net)) + kv("nights", "Nights", String(p.nights)) + kv("win", "Win%", pct(p.win)) +
-      kv("best", "Best night", p.best ? PB.signed(p.best.net) + " · " + esc(fmtDay(p.best.d)) : "—", p.best ? figCls(p.best.net) : "") +
-      kv("worst", "Worst night", p.worst ? PB.signed(p.worst.net) + " · " + esc(fmtDay(p.worst.d)) : "—", p.worst ? figCls(p.worst.net) : "") +
-      kv("streak", "Current streak", streakText(p.streak), figCls(p.streak)) + kv("bpn", "Buy-ins a night", p.bpnX10 === null ? "—" : (p.bpnX10 / 10).toFixed(1)) +
-      kv("nemesis", "Nemesis", p.nemesis ? esc(p.nemesis.n) + " · above " + p.nemesis.count + " of " + p.nemesis.together : "—") +
-      kv("victim", "Favourite victim", p.victim ? esc(p.victim.n) + " · above " + p.victim.count + " of " + p.victim.together : "—") + "</div></div>";
+    var c = pcol(S, id), bpn = p.bpnX10 === null ? "—" : (p.bpnX10 / 10).toFixed(1);
+    var h0 = PB.stats.history(S, id)[0], since = h0 ? MONTHS[new Date(h0.d).getMonth()].slice(0, 3) + " " + new Date(h0.d).getFullYear() : "";
+    var srow = PB.stats.table(S, "season", "net").filter(function (r) { return r.id === id; })[0];
+    function tile(k, label, v, cls, sub) { return '<div class="fTileS" data-k="' + k + '"><span>' + label + '</span><b class="fig ' + (cls || "") + '">' + v + "</b>" + (sub ? '<i class="fSubv">' + sub + "</i>" : "") + "</div>"; }
+    var out = '<div id="profile" class="fProf"><div class="fPh">' + avatar(p.n, c, "lg") + '<div style="min-width:0;flex:1"><div class="fPname" style="color:' + txtCol(c) + '">' + esc(p.n) + "</div>" +
+      '<div class="fPnet" data-k="net"><span class="fig ' + figCls(p.net) + '">' + PB.signed(p.net) + '</span><span class="fPall">all-time</span></div></div></div>' +
+      '<div class="fPsub"><span data-k="nights"><span class="fig">' + p.nights + '</span> nights</span> · <span data-k="win"><span class="fig">' + pct(p.win) + "</span> won</span>" + (since ? " · since " + since : "") + "</div>" +
+      sparkPro(p.run) + '<div class="fTiles6">' +
+      tile("best", "Best night", p.best ? PB.signed(p.best.net) : "—", p.best ? "up" : "", p.best ? esc(shortDay(p.best.d)) : "") +
+      tile("worst", "Worst night", p.worst ? PB.signed(p.worst.net) : "—", p.worst ? "down" : "", p.worst ? esc(shortDay(p.worst.d)) : "") +
+      tile("streak", "Streak", streakText(p.streak), figCls(p.streak)) +
+      tile("bpn", "Buy-ins / night", bpn) +
+      tile("season", "Season " + esc(S.season), srow ? PB.signed(srow.net) : "—", srow ? figCls(srow.net) : "") +
+      tile("avg", "Avg / night", p.nights ? PB.signed(PB.stats.rnd(p.net / p.nights)) : "—", p.nights ? figCls(p.net) : "") + "</div>";
+    // Rivals: the toughest rival, the favourite opponent, then whoever he met most.
+    var rows = [], seenR = Object.create(null);
+    function rival(k, oid, tag) {
+      if (!oid || seenR[oid]) return; var h = PB.stats.h2h(S, id, oid); if (!h || !h.together) return; seenR[oid] = 1;
+      rows.push('<button class="fRival" data-k="' + k + '" data-vs="' + esc(oid) + '"><span class="fNt" style="color:' + tcol(S, oid) + '">' + esc(pname(S, oid)) + "</span>" + (tag ? '<span class="fTag">' + tag + "</span>" : "<span></span>") +
+        '<span class="fig fScore">' + h.aAbove + "–" + h.bAbove + '</span><span class="fMeta">' + h.together + " nights</span>" + CHEV + "</button>");
+    }
+    rival("nemesis", p.nemesis && p.nemesis.id, "Toughest rival");
+    rival("victim", p.victim && p.victim.id, "Favourite opponent");
+    S.order.filter(function (o) { return o !== id; }).map(function (o) { return PB.stats.h2h(S, id, o); }).filter(function (o) { return o && o.together; })
+      .sort(function (a, b) { return b.together - a.together || (pname(S, a.b).toLowerCase() < pname(S, b.b).toLowerCase() ? -1 : 1); })
+      .forEach(function (o) { if (rows.length < 3) rival("most", o.b, "Most games"); });
+    out += '<div class="fSecTop fRivTop"><h3 class="fH2">Rivals</h3>' + (opts.sheet ? '<button class="fLinkS" id="vsLink"' + (opts.vs ? " hidden" : "") + '>vs anyone<span aria-hidden="true">›</span></button>' : "") + "</div>" +
+      '<div class="fCard fRivals" id="rivals">' + (rows.join("") || '<p class="muted fPad">No rivals yet (3+ games together).</p>') + "</div>";
+    if (opts.sheet) {
+      var others = S.order.filter(function (o) { return o !== id && PB.stats.history(S, o).length; }).sort(function (a, b) { return pname(S, a).toLowerCase() < pname(S, b).toLowerCase() ? -1 : 1; });
+      out += '<div id="vsBox"' + (opts.vs ? "" : " hidden") + '><label class="fPick"><span>Compare with</span><select id="vsPick"><option value="">Choose a player</option>' + others.map(function (o) {
+          return '<option value="' + esc(o) + '"' + (o === opts.vs ? " selected" : "") + ">" + esc(pname(S, o)) + "</option>"; }).join("") + "</select></label></div>";
+      var h = opts.vs ? PB.stats.h2h(S, id, opts.vs) : null;
+      if (h) out += !h.together ? '<p class="muted small" id="h2h">These two haven\'t played a shared night together.</p>'
+        : '<div class="fCard fKv" id="h2h">' + kv("together", "Games together", String(h.together)) +
+          kv("above", "Finished above", esc(pname(S, h.a)) + " " + h.aAbove + " · " + esc(pname(S, h.b)) + " " + h.bAbove) +
+          kv("aNet", esc(pname(S, h.a)) + " in those games", PB.signed(h.aNet), figCls(h.aNet)) + kv("bNet", esc(pname(S, h.b)) + " in those games", PB.signed(h.bNet), figCls(h.bNet)) +
+          kv("last", "Last met", esc(shortDay(h.last))) + "</div>";
+    }
+    return out + "</div>";
   }
   function nightHTML(S, d) {
     var nt = S.nights.filter(function (x) { return x.d === d; })[0];
@@ -2455,15 +2760,15 @@ if (typeof module !== "undefined") module.exports = PB;
   function tableHTML(S, ex) {
     var rows = PB.stats.table(S, ex.tab, ex.sort);
     var tabs = '<div class="seg" id="exTabs"><button data-tab="season" class="' + (ex.tab === "season" ? "on" : "") + '">Season ' + esc(S.season) + '</button><button data-tab="all" class="' + (ex.tab === "all" ? "on" : "") + '">All-time</button></div>';
-    var sorts = '<div class="seg" id="exSort" style="margin-top:8px">' + [["net", "Net"], ["nights", "Nights"], ["win", "Win%"], ["avg", "Avg"]].map(function (s) {
-      return '<button data-sort="' + s[0] + '" class="' + (ex.sort === s[0] ? "on" : "") + '">' + s[1] + "</button>"; }).join("") + "</div>";
-    var body = rows.length ? '<div class="card" id="stTable"><div class="line small muted"><span class="nm">Player</span><span style="min-width:30px;text-align:right">Nts</span><span style="min-width:38px;text-align:right">Win</span><span class="c-avg" style="min-width:62px;text-align:right">Avg</span><span style="min-width:78px;text-align:right">Net</span></div>' +
+    var body = rows.length ? '<div class="card" id="stTable"><div class="line small muted stHead"><span class="nm">Player</span>' + [["nights", "Nights", 44], ["win", "Won", 40], ["avg", "Avg", 60], ["net", "Net", 78]].map(function (h) {
+        // 4.4.2: tap a column header to sort (no separate sort row).
+        return '<button class="th' + (ex.sort === h[0] ? " on" : "") + (h[0] === "avg" ? " c-avg" : "") + '" data-sort="' + h[0] + '" style="min-width:' + h[2] + 'px">' + h[1] + (ex.sort === h[0] ? "▾" : "") + "</button>"; }).join("") + "</div>" +
       rows.map(function (r) {
         return '<div class="line stRow" data-p="' + esc(r.id) + '" style="cursor:pointer"><span class="nm c-name">' + esc(r.n) + '</span><span class="fig small muted c-nights" style="min-width:30px;text-align:right">' + r.nights +
           '</span><span class="fig small muted c-win" style="min-width:38px;text-align:right">' + pct(r.win) + '</span><span class="fig small c-avg ' + figCls(r.avg) + '" style="min-width:62px;text-align:right">' + PB.signed(r.avg) +
           '</span><span class="fig c-net ' + figCls(r.net) + '" style="min-width:78px;text-align:right;font-weight:700">' + PB.signed(r.net) + "</span></div>";
       }).join("") + "</div>" : '<p class="muted">No nights this season yet.</p>';
-    return "<h2>Standings</h2>" + tabs + sorts + body;
+    return "<h2>Standings</h2>" + tabs + body;
   }
   function recentHTML(S, ex) {
     var list = S.nights.slice(0, ex.more);
@@ -2528,6 +2833,224 @@ if (typeof module !== "undefined") module.exports = PB;
     var bk = document.getElementById("exBack"); if (bk) bk.onclick = set(function () { ex.sub = null; view.scrollTop = true; });
     ["h2hA", "h2hB"].forEach(function (idA) { var s = document.getElementById(idA); if (s) s.onchange = set(function (t) { ex[idA === "h2hA" ? "a" : "b"] = t.value; }); });
   }
+  // ----- 4.4.3: the Friday page, polished (Kittu 20-Nov: modern, professional) -----
+  // Hero (the card, live) → storylines → standings snapshot → last night →
+  // records; everything else opens in a sheet. One sans type scale (body.fri),
+  // an 8-pt grid, hairline cards. Every figure comes from PB.stats.
+  function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  // Two letters, so Teja and Thati don't both read "T".
+  function initials(n) { var w = String(n).trim().split(/\s+/); return w.length > 1 ? (w[0].charAt(0) + w[w.length - 1].charAt(0)).toUpperCase() : w[0].charAt(0).toUpperCase() + w[0].charAt(1).toLowerCase(); }
+  function pcol(S, id) { var p = S && S.players[id]; return p ? colorOf({ col: p.col }, 0) : "#5D636B"; }
+  // Initials in white or near-black, whichever reads better on the colour (WCAG contrast).
+  function lum(hex) { var m = /^#([0-9a-f]{6})$/i.exec(hex); if (!m) return 0.2; var v = parseInt(m[1], 16); return [v >> 16, (v >> 8) & 255, v & 255].map(function (c) { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }).reduce(function (a, c, i) { return a + c * [0.2126, 0.7152, 0.0722][i]; }, 0); }
+  function inkOn(hex) { var L = lum(hex); return (1.05) / (L + 0.05) >= (L + 0.05) / (0.0078 + 0.05) ? "#FFFFFF" : "#0B0D10"; }
+  // A player's colour for TEXT on the dark cards (#16181D): lifted towards white until it reads at WCAG AA (4.5:1).
+  function txtCol(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(hex); if (!m) return "#C9CDD2";
+    var v = parseInt(m[1], 16), rgb = [v >> 16, (v >> 8) & 255, v & 255], bg = lum("#16181D");
+    for (var t = 0; t <= 1.0001; t += 0.05) {
+      var c = rgb.map(function (x) { return Math.round(x + (255 - x) * t); }), h = "#" + c.map(function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+      if ((lum(h) + 0.05) / (bg + 0.05) >= 4.5) return h;
+    }
+    return "#FFFFFF";
+  }
+  function tcol(S, id) { return txtCol(pcol(S, id)); }
+  function avatar(name, col, cls) { return '<span class="fAv' + (cls ? " " + cls : "") + '" style="background:' + col + ";color:" + inkOn(col) + '">' + esc(initials(name)) + "</span>"; }
+  function idsByName(S) { var m = Object.create(null); if (S) S.order.forEach(function (id) { m[S.players[id].n.trim().toLowerCase()] = id; }); return m; }
+  function meId(S) { var me = String(load(ME, "") || "").trim().toLowerCase(); return S && me ? idsByName(S)[me] || null : null; }
+  function standOK() { var S = stand.s; return S && S !== "off" ? S : null; }
+  // A small icon per kind of fact (inline SVG, stroke = currentColor).
+  var ICONS = {
+    hot: '<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.9 2.5-5 .3 1.6 1.2 2.6 2.3 2.9C11.3 8.8 11 6 12 3z"/>',
+    cold: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/>',
+    rival: '<path d="M4 4l10 10M14 18l4-4M16 16l4 4M20 4L10 14M10 18l-4-4M8 16l-4 4"/>',
+    chase: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/>',
+    mile: '<path d="M6 21V4M6 4h11l-2.5 4L17 12H6"/>',
+    big: '<path d="M8 4h8v4a4 4 0 0 1-8 0V4zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 12v4M9 20h6M10 16h4v4h-4z"/>',
+    streak: '<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.9 2.5-5 .3 1.6 1.2 2.6 2.3 2.9C11.3 8.8 11 6 12 3z"/>',
+    iron: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+    most: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+    last: '<path d="M8 4h8v4a4 4 0 0 1-8 0V4zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 12v4M9 20h6M10 16h4v4h-4z"/>',
+    climb: '<path d="M4 17l5-5 4 4 7-7M14 9h6v6"/>',
+    comeback: '<path d="M4 7v5a5 5 0 0 0 5 5h11M16 13l4 4-4 4"/>',
+    first: '<path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/>',
+    bi: '<ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 10v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4M5 14v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4"/>'
+  };
+  var TINT = { last: "#E5C784", climb: "#7FC7A6", comeback: "#7DB7E8", first: "#C9A7F2", bi: "#E5C784", hot: "#F2A65A", cold: "#7DB7E8", rival: "#E07A8A", chase: "#7FC7A6", mile: "#C9A7F2", big: "#E5C784", streak: "#F2A65A", iron: "#7DB7E8", most: "#7FC7A6" };
+  function icon(k) { return '<span class="fIc" style="color:' + TINT[k] + ";background:" + TINT[k] + '1F"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + "</svg></span>"; }
+  var SR = function (t) { return '<span class="sr">' + t + "</span>"; };
+  function heroHTML() {
+    var x = rsvpOpen(), S = standOK(), byName = idsByName(S);
+    if (!club.loaded) return '<section class="fHero" id="rsvpCard"><p class="muted">Loading the Friday card…</p></section>';
+    if (!x) return '<section class="fHero" id="rsvpCard"><h1 class="fTitle">Friday</h1><div class="fNone">No Friday card is open right now.</div></section>';
+    var ans = rsvpAnswers(x.c), by = { "in": [], maybe: [], out: [] };
+    ans.forEach(function (a) { by[a.s].push(a); });
+    var me = load(ME, ""), mine = me && ans.find(function (a) { return a.pk === rsvpKey(me); });
+    var p = x.day.split("-").map(Number), dd = new Date(p[0], p[1] - 1, p[2]);
+    var title = DAYS[dd.getDay()] + ", " + dd.getDate() + " " + MONTHS[dd.getMonth()].slice(0, 3);
+    var sub = typeof x.c.title === "string" && x.c.title && x.c.title !== "Poker" ? esc(x.c.title) : "";
+    var ins = by["in"], many = ins.length > 7, shown = many ? ins.slice(0, 6) : ins;
+    var faces = shown.map(function (a) {
+      var id = byName[a.n.trim().toLowerCase()], c = id ? pcol(S, id) : "#5D636B";
+      return '<button class="fPill"' + (id ? ' data-p="' + esc(id) + '"' : " disabled") + ' aria-label="' + esc(a.n) + '">' + avatar(a.n, c) + (many ? "" : '<span class="fPn">' + esc(a.n) + "</span>") + "</button>";
+    }).join("") + (many ? '<span class="fMoreAv">+' + (ins.length - 6) + "</span>" : "");
+    var quiet = [["maybe", "Maybe"], ["out", "Out"]].filter(function (q) { return by[q[0]].length; }).map(function (q) {
+      return '<span class="fQ"><span class="fQl">' + q[1] + "</span> " + by[q[0]].map(function (a) { return esc(a.n); }).join(", ") + "</span>"; }).join("");
+    var you = mine ? '<div class="youLine" id="youLine"><span class="youTxt fStatus s-' + mine.s + '"><span>' + { "in": "You're in ✓", maybe: "You're a maybe", out: "You're out" }[mine.s] + '</span></span><button class="linkBtn" id="rsvpChange">Change</button></div>'
+      : '<button class="btn solid fAnswer" id="rsvpGo">Answer: in or out?</button>';
+    return '<section class="fHero" id="rsvpCard"><div class="fHeroTop"><div style="min-width:0"><h1 class="fTitle">' + esc(title) + '<i class="fLive" aria-label="Live" role="img"></i></h1>' + (sub ? '<div class="fSub">' + sub + "</div>" : "") + "</div></div>" +
+      '<div class="fStat" id="tally"><span class="fStatIn"><b>' + ins.length + "</b> in</span>" + '<span class="fDot"> · </span><span class="fStatQ">' + by.maybe.length + " maybe</span>" + '<span class="fDot"> · </span><span class="fStatQ">' + by.out.length + " out</span></div>" +
+      (faces ? '<div class="fPills' + (many ? " stack" : "") + '" id="inPills">' + faces + "</div>" : '<div class="fEmpty">Nobody is in yet. Be the first.</div>') +
+      (quiet ? '<div class="fQuiet" id="quietLine">' + quiet + "</div>" : "") + you + "</section>";
+  }
+  function inIds(S) {
+    var x = rsvpOpen(); if (!x || !S) return [];
+    var m = idsByName(S);
+    return rsvpAnswers(x.c).filter(function (a) { return a.s === "in"; }).map(function (a) { return m[a.n.trim().toLowerCase()]; }).filter(Boolean);
+  }
+  function nameSpan(S, id) { return '<span style="color:' + tcol(S, id) + '">' + esc(pname(S, id)) + "</span>"; }
+  // One storyline: { label, stat (plain text), who (escaped html) }.
+  function storyText(S, s) {
+    if (s.k === "hot") return { label: "On a run", stat: s.n + " up in a row", who: nameSpan(S, s.id) };
+    if (s.k === "cold") return { label: "Due a win", stat: "Due a win: " + s.n + " down", who: nameSpan(S, s.id) };
+    if (s.k === "last") return { label: "Last game", stat: "Won " + PB.signed(s.net), who: nameSpan(S, s.id) + ' <span class="muted">· ' + esc(dayMon(s.d)) + "</span>" };
+    if (s.k === "climb") return { label: "Climber", stat: "Up to " + ordinal(s.to) + " from " + ordinal(s.from), who: nameSpan(S, s.id) };
+    if (s.k === "comeback") return { label: "Comeback", stat: "Back to " + PB.signed(s.now), who: nameSpan(S, s.id) + ' <span class="muted">· was ' + PB.signed(s.low) + "</span>" };
+    if (s.k === "iron") return { label: "Iron man", stat: s.n + " games straight", who: nameSpan(S, s.id) };
+    if (s.k === "first") return { label: "New face", stat: "First game", who: esc(s.n) + ' <span class="muted">· welcome</span>' };
+    if (s.k === "rival") return { label: "Rivalry", stat: s.aAbove + "–" + s.bAbove + " in " + s.together + " nights", who: nameSpan(S, s.id) + ' <span class="muted">vs</span> ' + nameSpan(S, s.b) };
+    if (s.k === "chase") return { label: s.season ? "The chase" : "The chase · all-time", stat: PB.inr(s.gap) + " off " + ordinal(s.place), who: nameSpan(S, s.id) + ' <span class="muted">→ ' + esc(pname(S, s.above)) + "</span>" };
+    return { label: "Milestone", stat: s.tonight ? ordinal(s.nights + 1) + " night tonight" : s.nights + " nights", who: nameSpan(S, s.id) + (s.most ? ' <span class="muted">· most ever</span>' : "") };
+  }
+  // Headlines shrink to fit the tile instead of being cut (by length; plain text in).
+  function fitCls(t) { var n = String(t).length; return n > 17 ? "fit3" : n > 14 ? "fit2" : ""; }
+  var CHEV = '<svg class="fChev" viewBox="0 0 8 12" width="7" height="11" aria-hidden="true"><path d="M1.5 1.5L6 6l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function tileHTML(k, attr, label, stat, who, cls) {
+    return '<button class="fTile ' + (cls || "") + '" ' + attr + ' aria-label="' + esc(label) + '"><span class="fTileTop">' + icon(k) + CHEV + '</span><span class="fSs ' + fitCls(stat) + '">' + esc(stat) + '</span><span class="fSh">' + who + "</span></button>";
+  }
+  // In players with no shared night yet ("first game"), by the name on the card.
+  function firstTimers(S) {
+    var x = rsvpOpen(); if (!x || !S) return [];
+    var m = idsByName(S);
+    return rsvpAnswers(x.c).filter(function (a) { return a.s === "in" && !m[a.n.trim().toLowerCase()]; }).map(function (a) { return { k: "first", n: a.n }; });
+  }
+  function storiesHTML(S) {
+    var list = firstTimers(S).slice(0, 2).concat(PB.stats.storylines(S, inIds(S))).slice(0, 8);
+    if (!list.length) return "";
+    return '<section class="fSec"><div class="fSecTop"><h2 class="fH">Tonight\'s storylines</h2></div><div class="fRail" id="stories">' + list.map(function (s) {
+      var t = storyText(S, s);
+      return tileHTML(s.k, 'data-k="' + s.k + '"' + (s.id ? ' data-p="' + esc(s.id) + '"' : ""), t.label, t.stat, t.who, "fStory" + (s.id ? "" : " noTap"));
+    }).join("") + "</div>" + (list.length > 2 ? '<div class="fDots" id="storyDots" aria-hidden="true">' + list.map(function (_, i) { return "<i" + (i ? "" : ' class="on"') + "></i>"; }).join("") + "</div>" : "") + "</section>";
+  }
+  function segHTML(ex, S) {
+    return '<div class="fSeg" id="exTabs" role="tablist"><button data-tab="season" class="' + (ex.tab === "season" ? "on" : "") + '">' + esc(S.season) + '</button><button data-tab="all" class="' + (ex.tab === "all" ? "on" : "") + '">All-time</button></div>';
+  }
+  function snapHTML(S, ex) {
+    // The page always ranks by net; other orders live in the Full table sheet.
+    var rows = PB.stats.table(S, ex.tab, "net"), me = meId(S), top = rows.slice(0, 5);
+    var mi = me ? rows.findIndex(function (r) { return r.id === me; }) : -1;
+    function row(r, k) {
+      return '<div class="fRow snapRow' + (r.id === me ? " me" : "") + '" data-p="' + esc(r.id) + '"><span class="fRk">' + (k + 1) + "</span>" +
+        '<span class="fNm"><span class="fNt" style="color:' + tcol(S, r.id) + '">' + esc(r.n) + (r.id === me ? '<span class="fYou">You</span>' : "") + '</span><span class="fMeta"><span class="c-nights">' + r.nights + "</span> nights · <span class=\"c-win\">" + pct(r.win) + "</span> won</span></span>" +
+        '<span class="fNet c-net ' + figCls(r.net) + '">' + PB.signed(r.net) + "</span>" + CHEV + "</div>";
+    }
+    return '<section class="fSec"><div class="fSecTop"><h2 class="fH">Standings</h2><button class="fLinkS" id="fullTable">Full table<span aria-hidden="true">›</span></button></div>' + (load(HINT, 0) ? "" : '<p class="fHint" id="tapHint">Tap a name for their player card</p>') + '<div class="fCard fBoard" id="snap"><div class="fBoardHead">' + segHTML(ex, S) + "</div>" +
+      (rows.length ? top.map(row).join("") + (mi >= 5 ? '<div class="fGap" aria-hidden="true"></div>' + row(rows[mi], mi) : "") : '<p class="muted fPad">No nights this season yet.</p>') +
+      "</div></section>";
+  }
+  function lastHTML(S) {
+    var nt = S.nights[0];
+    var d = new Date(nt.d), label = now() - nt.d <= 36 * 3600000 ? "Last night" : "Last game";
+    return '<section class="fSec"><div class="fSecTop"><h2 class="fH">' + label + '</h2><span class="fLinks"><button class="fLinkS" id="allRecords">Records<span aria-hidden="true">›</span></button><button class="fLinkS" id="allNights">All games<span aria-hidden="true">›</span></button></span></div><div class="fCard fLast" id="lastNight"><div class="fCardHead"><span>' + DAYS[d.getDay()].slice(0, 3) + " " + d.getDate() + " " + MONTHS[d.getMonth()].slice(0, 3) + '</span><span class="muted">' + nt.rows.length + " players</span></div>" +
+      nt.rows.slice(0, 3).map(function (r, k) {
+        return '<div class="fTop3' + (k ? "" : " fWin") + '" data-p="' + esc(r.id) + '"><span class="fPos">' + (k + 1) + '</span><span class="fNt"' + (k ? "" : ' style="color:' + tcol(S, r.id) + '"') + ">" + esc(pname(S, r.id)) + '</span><span class="fig ' + figCls(r.net) + '">' + PB.signed(r.net) + "</span></div>";
+      }).join("") + "</div></section>";
+  }
+  // ----- sheets (a ✕ in the corner closes them) -----
+  var XBTN = '<button class="fX" id="shClose" aria-label="Close"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
+  function fSheet(html, bind) {
+    sheet(XBTN + html, function (el) {
+      el.classList.add("fSheet");
+      el.querySelector("#shClose").onclick = closeSheet;
+      if (bind) bind(el);
+    });
+  }
+  var HINT = "pbt.hint.v1";
+  function openProfile(id, vs) {
+    var S = standOK(); if (!S) return;
+    if (!load(HINT, 0)) { save(HINT, 1); var th = document.getElementById("tapHint"); if (th) th.remove(); }
+    fSheet(profileHTML(S, id, { sheet: true, vs: vs || "" }), function (el) {
+      var p = el.querySelector("#vsPick"); if (p) p.onchange = function () { openProfile(id, p.value); };
+      var vl = el.querySelector("#vsLink"); if (vl) vl.onclick = function () { var bx = el.querySelector("#vsBox"); if (bx) { bx.hidden = false; vl.hidden = true; var se = bx.querySelector("select"); if (se) se.focus(); } };
+      el.querySelectorAll("[data-vs]").forEach(function (b) { b.onclick = function () { openProfile(id, b.dataset.vs); }; });
+    });
+  }
+  function openTable() {
+    var S = standOK(), ex = view.ex; if (!S || !ex) return;
+    fSheet('<div id="explorer" class="fTableSheet">' + tableHTML(S, ex) + "</div>", function (el) {
+      el.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { ex.tab = b.dataset.tab === "all" ? "all" : "season"; openTable(); render(); }; });
+      el.querySelectorAll("[data-sort]").forEach(function (b) { b.onclick = function () { ex.sort = b.dataset.sort; openTable(); render(); }; });
+      el.querySelectorAll("[data-p]").forEach(function (b) { b.onclick = function () { openProfile(b.dataset.p); }; });
+    });
+  }
+  function openNights(d) {
+    var S = standOK(), ex = view.ex; if (!S || !ex) return;
+    var body = d ? '<button class="fLinkS fBack" id="nightBack"><span aria-hidden="true">‹</span> All games</button>' + nightHTML(S, d) : nightsListHTML(S, ex);
+    fSheet('<div class="fListSheet">' + body + "</div>", function (el) {
+      el.querySelectorAll("[data-n]").forEach(function (b) { b.onclick = function () { openNights(+b.dataset.n); }; });
+      var mo = el.querySelector("#moreNights"); if (mo) mo.onclick = function () { ex.more += 10; openNights(); };
+      var bk = el.querySelector("#nightBack"); if (bk) bk.onclick = function () { openNights(); };
+    });
+  }
+  function recRow(k, label, o, val, sub) {
+    var S = standOK();
+    return '<div class="fLRow" data-k="' + k + '">' + icon(k === "loss" ? "cold" : k) + '<span class="fLMid"><span class="fLLab">' + label + '</span><span class="fLSub"' + (o ? ' style="color:' + tcol(S, o.id) + '"' : "") + ">" + (o ? esc(o.n) : "—") + (sub ? ' <span class="muted">· ' + sub + "</span>" : "") + '</span></span><span class="fig fLVal">' + (o ? val : "") + "</span></div>";
+  }
+  function openRecords() {
+    var S = standOK(); if (!S) return;
+    var R = PB.stats.records(S);
+    fSheet('<div class="fListSheet"><h2>Records</h2><div class="fCard fList" id="records">' +
+      recRow("big", "Biggest night", R.big, R.big && '<span class="up">' + PB.signed(R.big.net) + "</span>", R.big && esc(shortDay(R.big.d))) +
+      recRow("loss", "Biggest loss", R.loss, R.loss && '<span class="down">' + PB.signed(R.loss.net) + "</span>", R.loss && esc(shortDay(R.loss.d))) +
+      recRow("streak", "Longest winning run", R.streak, R.streak && R.streak.count + " in a row") +
+      recRow("bi", "Most buy-ins in a night", R.bi, R.bi && R.bi.bi + " buy-ins", R.bi && esc(shortDay(R.bi.d))) +
+      recRow("iron", "Iron man", R.iron, R.iron && R.iron.count + " nights", "in a row") +
+      recRow("most", "Most nights", R.most, R.most && R.most.count + " nights") + "</div></div>");
+  }
+  function nightsListHTML(S, ex) {
+    var list = S.nights.slice(0, ex.more);
+    return '<h2>All games</h2><div class="fCard fList" id="recent">' + list.map(function (nt) {
+      var w = nt.rows[0], d = new Date(nt.d);
+      return '<button class="fLRow nightRow" data-n="' + nt.d + '"><span class="fDate"><b>' + d.getDate() + "</b>" + MONTHS[d.getMonth()].slice(0, 3) + '</span><span class="fLMid"><span class="fLLab" style="color:' + tcol(S, w.id) + '">' + esc(pname(S, w.id)) + '</span><span class="fLSub">' + DAYS[d.getDay()].slice(0, 3) + " · " + nt.rows.length + ' players</span></span><span class="fig fLVal ' + figCls(w.net) + '">' + PB.signed(w.net) + "</span></button>";
+    }).join("") + "</div>" + (S.nights.length > ex.more ? '<button class="fLink fMoreN" id="moreNights">Show 10 more</button>' : "");
+  }
+  function fridayHTML() {
+    var S = stand.s, body;
+    if (S === undefined) body = '<p class="muted fPad" id="explorer">Loading the standings…</p>';
+    else if (S === "off") body = '<div class="status warn" id="explorer">No connection. Try again when you have signal.</div>';
+    else if (!S) body = '<p class="muted fPad" id="explorer">No standings yet.</p>';
+    else {
+      var ex = view.ex || (view.ex = newEx());
+      body = '<div id="fStats">' + storiesHTML(S) + snapHTML(S, ex) + lastHTML(S) +
+        '<p class="fFoot">Shared nights only' + (S.up > 0 ? " · " + esc(dayMon(S.up)) : "") + "</p></div>";
+    }
+    return heroHTML() + body;
+  }
+  function fridayBind() {
+    ["rsvpGo", "rsvpChange"].forEach(function (idA) { var b = document.getElementById(idA); if (b) b.onclick = function () { var y = rsvpOpen(); if (y) rsvpAsk(y); }; });
+    var root = document.getElementById("app"), ex = view.ex;
+    root.querySelectorAll("[data-p]").forEach(function (b) { b.onclick = function () { openProfile(b.dataset.p); }; });
+    root.querySelectorAll("#exTabs [data-tab]").forEach(function (b) { b.onclick = function () { ex.tab = b.dataset.tab === "all" ? "all" : "season"; render(); }; });
+    var ar = document.getElementById("allRecords"); if (ar) ar.onclick = openRecords;
+    var ft = document.getElementById("fullTable"); if (ft) ft.onclick = openTable;
+    var rail = document.getElementById("stories"), dots = document.getElementById("storyDots");
+    if (rail && dots) rail.addEventListener("scroll", function () {
+      var t = rail.firstElementChild, w = t ? t.getBoundingClientRect().width + 10 : 1, i = Math.round(rail.scrollLeft / w), max = rail.scrollWidth - rail.clientWidth;
+      if (max > 0 && rail.scrollLeft >= max - 2) i = dots.children.length - 1;
+      Array.prototype.forEach.call(dots.children, function (d, k) { d.className = k === i ? "on" : ""; });
+    }, { passive: true });
+    var an = document.getElementById("allNights"); if (an) an.onclick = function () { openNights(); };
+  }
   function openStandings() { go("stats", { ex: newEx() }); loadStand(); }
   function openFriday() {
     try { history.replaceState(null, "", location.pathname + location.search + "#friday"); } catch (e) {}
@@ -2542,15 +3065,9 @@ if (typeof module !== "undefined") module.exports = PB;
   VIEWS.friday = {
     html: function () {
       if (!GK) return '<h1>Friday</h1><div class="card" id="noGroup"><div style="font-weight:650">This phone isn\'t connected to the group.</div><div class="small muted" style="margin-top:4px">Open the Friday link from the WhatsApp group again.</div></div>';
-      var card = !club.loaded ? '<div class="card" id="rsvpCard"><p class="muted">Loading the Friday card…</p></div>'
-        : rsvpOpen() ? rsvpCardHTML(true)
-        : '<div class="card" id="rsvpCard"><div style="font-weight:650">No Friday card is open right now.</div><div class="small muted quip" id="rsvpQuip" style="margin-top:4px;font-style:italic">' + esc(quip(RSVP_LINES, isoDay(now()))) + "</div></div>";
-      return '<h1>Friday</h1>' + card + exHTML();
+      return fridayHTML();
     },
-    bind: function () {
-      ["rsvpGo", "rsvpChange"].forEach(function (idA) { var b = document.getElementById(idA); if (b) b.onclick = function () { var y = rsvpOpen(); if (y) rsvpAsk(y); }; });
-      exBind();
-    }
+    bind: fridayBind
   };
 
   // ----- this game moved to another phone (read-only) -----
@@ -2662,6 +3179,9 @@ if (typeof module !== "undefined") module.exports = PB;
     else render();
   }
   window.addEventListener("hashchange", start);
+  // 4.4.3: the top bar gets a blurred backdrop and a hairline once the page scrolls.
+  (function () { var hd = document.querySelector("header.top"), on = false;
+    window.addEventListener("scroll", function () { var y = (window.scrollY || 0) > 4; if (hd && y !== on) { on = y; hd.classList.toggle("scrolled", y); } }, { passive: true }); })();
   window.addEventListener("storage", function (e) { if (e.key === KEY || e.key === null) resync(); });
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return cloudFlush();
